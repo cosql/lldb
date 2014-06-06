@@ -54,7 +54,7 @@ PARALLEL_DIRS += JITLoader/GDB
 endif
 
 ifneq (,$(filter $(HOST_OS), FreeBSD GNU/kFreeBSD))
-PARALLEL_DIRS += Process/FreeBSD Process/POSIX
+PARALLEL_DIRS += Process/FreeBSD Process/FreeBSD-Kernel Process/POSIX
 PARALLEL_DIRS += Process/elf-core
 PARALLEL_DIRS += JITLoader/GDB
 endif
