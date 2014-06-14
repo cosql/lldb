@@ -1,4 +1,4 @@
-//===-- ProcessKDP.cpp ------------------------------------------*- C++ -*-===//
+//===-- ProcessFreeBSDKernel.cpp --------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -30,12 +30,14 @@
 #include "lldb/Interpreter/OptionGroupString.h"
 #include "lldb/Interpreter/OptionGroupUInt64.h"
 #include "lldb/Symbol/ObjectFile.h"
+#include "lldb/Symbol/SymbolVendor.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
 
 // Project includes
 #include "ProcessFreeBSDKernel.h"
+#include "ThreadFreeBSDKernel.h"
 #include "ProcessPOSIXLog.h"
 #include "Utility/StringExtractor.h"
 
@@ -43,10 +45,18 @@ using namespace lldb;
 using namespace lldb_private;
 
 namespace {
+    enum {
+        TDS_INACTIVE = 0x0,
+        TDS_INHIBITED,
+        TDS_CAN_RUN,
+        TDS_RUNQ,
+        TDS_RUNNING
+    };
+
     static PropertyDefinition
     g_properties[] =
     {
-        {  NULL            , OptionValue::eTypeInvalid, false, 0, NULL, NULL, NULL  }
+        {NULL, OptionValue::eTypeInvalid, false, 0, NULL, NULL, NULL}
     };
     class PluginProperties : public Properties
     {
@@ -83,8 +93,6 @@ namespace {
     }
 
 } // anonymous namespace end
-
-static const lldb::tid_t g_kernel_tid = 1;
 
 ConstString
 ProcessFreeBSDKernel::GetPluginNameStatic()
@@ -129,18 +137,18 @@ ProcessFreeBSDKernel::CanDebug(Target &target, bool plugin_specified_by_name)
         const llvm::Triple &triple_ref = target.GetArchitecture().GetTriple();
         switch (triple_ref.getOS())
         {
-             case llvm::Triple::FreeBSD:
-                 if ((llvm::Triple::OSType)triple_ref.getVendor() == llvm::Triple::FreeBSD)
-                {
-                    ObjectFile *exe_objfile = exe_module->GetObjectFile();
-                    if (exe_objfile->GetType() == ObjectFile::eTypeExecutable &&
-                        exe_objfile->GetStrata() == ObjectFile::eStrataKernel)
-                        return true;
-                }
-                break;
-
-            default:
-                break;
+        case llvm::Triple::FreeBSD:
+            {
+            ObjectFile *exe_objfile = exe_module->GetObjectFile();
+            if (exe_objfile->GetType() == ObjectFile::eTypeExecutable) // &&
+                // exe_objfile->GetStrata() == ObjectFile::eStrataKernel)
+            {     
+                return true;
+            }
+            break;
+            }
+        default:
+            break;
         }
     }
     return false;
@@ -152,15 +160,13 @@ ProcessFreeBSDKernel::CanDebug(Target &target, bool plugin_specified_by_name)
 ProcessFreeBSDKernel::ProcessFreeBSDKernel(Target& target, Listener &listener,
                                            const FileSpec &crash_file_path) :
     Process (target, listener),
+    m_core_file_name (crash_file_path.GetPath().c_str()),
     m_dyld_plugin_name (),
+    m_kernel_image_file_name (target.GetExecutableModule()->GetFileSpec().GetPath().c_str()),
     m_core_file (crash_file_path),
     m_kernel_load_addr (LLDB_INVALID_ADDRESS),
-    m_command_sp(),
-    m_kernel_thread_wp()
+    m_kvm(nullptr)
 {
-    m_kernel_image_file_name =
-        target.GetExecutableModule()->GetFileSpec().GetFilename();
-    m_core_file_name = crash_file_path.GetFilename();
 }
 
 //----------------------------------------------------------------------
@@ -221,12 +227,20 @@ ProcessFreeBSDKernel::WillAttachToProcessWithName (const char *process_name, boo
 Error
 ProcessFreeBSDKernel::DoLoadCore ()
 {
+    Log *log (ProcessPOSIXLog::GetLogIfAllCategoriesSet (POSIX_LOG_PROCESS));
     Error error;
     char kvm_err[_POSIX2_LINE_MAX];
     if (m_core_file.Exists()) {
         m_kvm = kvm_openfiles(m_kernel_image_file_name.AsCString(),
-                              m_core_file_name.AsCString() , nullptr,
+                              m_core_file_name.AsCString(), nullptr,
                               O_RDONLY, kvm_err);
+        if (m_kvm == nullptr && log)
+        {
+            log->Printf ("ProcessFreeBSDKernel::DoLoadCore() error %s", kvm_err);
+            error.SetErrorString("Open core file failed in FreeBSD Kernel");
+        } else {
+            InitializeThreads();
+        }
     }
     return error;
 }
@@ -291,8 +305,8 @@ ProcessFreeBSDKernel::GetImageInfoAddress()
 lldb_private::DynamicLoader *
 ProcessFreeBSDKernel::GetDynamicLoader ()
 {
-    if (m_dyld_ap.get() == NULL)
-        m_dyld_ap.reset (DynamicLoader::FindPlugin(this, m_dyld_plugin_name.IsEmpty() ? NULL : m_dyld_plugin_name.AsCString()));
+    // if (m_dyld_ap.get() == NULL)
+    //    m_dyld_ap.reset (DynamicLoader::FindPlugin(this, m_dyld_plugin_name.IsEmpty() ? NULL : m_dyld_plugin_name.AsCString()));
     return m_dyld_ap.get();
 }
 
@@ -312,33 +326,25 @@ ProcessFreeBSDKernel::DoResume ()
     return error;
 }
 
-lldb::ThreadSP
-ProcessFreeBSDKernel::GetKernelThread()
+ThreadFreeBSDKernel *
+ProcessFreeBSDKernel::CreateNewThreadFreeBSDKernel (lldb_private::Process &process,
+                                                   lldb::tid_t tid)
 {
-    // KDP only tells us about one thread/core. Any other threads will usually
-    // be the ones that are read from memory by the OS plug-ins.
-
-    ThreadSP thread_sp (m_kernel_thread_wp.lock());
-    if (!thread_sp)
-    {
-    }
-    return thread_sp;
+    return new ThreadFreeBSDKernel(process, tid);
 }
 
 bool
-ProcessFreeBSDKernel::UpdateThreadList (ThreadList &old_thread_list, ThreadList &new_thread_list)
+ProcessFreeBSDKernel::UpdateThreadList (ThreadList &old_thread_list,
+                                        ThreadList &new_thread_list)
 {
-    // locker will keep a mutex locked until it goes out of scope
     Log *log (ProcessPOSIXLog::GetLogIfAllCategoriesSet (POSIX_LOG_THREAD));
     if (log && log->GetMask().Test(POSIX_LOG_VERBOSE))
         log->Printf ("ProcessFreeBSDKernel::%s (pid = %" PRIu64 ")", __FUNCTION__, GetID());
 
-    // indivudually, there is really only one. Lets call this thread 1.
-    ThreadSP thread_sp (old_thread_list.FindThreadByProtocolID(g_kernel_tid, false));
-    if (!thread_sp)
-        thread_sp = GetKernelThread ();
-    new_thread_list.AddThread(thread_sp);
-
+    for (size_t i = 0; i < m_kthreads.size(); i++)
+    {
+        new_thread_list.AddThread(m_kthreads[i]);
+    }
     return new_thread_list.GetSize(false) > 0;
 }
 
@@ -347,7 +353,7 @@ ProcessFreeBSDKernel::RefreshStateAfterStop ()
 {
     // Let all threads recover from stopping and do any clean up based
     // on the previous thread state (if any).
-    m_thread_list.RefreshStateAfterStop();
+    //  m_thread_list.RefreshStateAfterStop();
 }
 
 Error
@@ -384,7 +390,7 @@ ProcessFreeBSDKernel::DoDestroy ()
 bool
 ProcessFreeBSDKernel::IsAlive ()
 {
-    return (m_kvm  != NULL);
+    return (m_kvm  != nullptr);
 }
 
 //------------------------------------------------------------------
@@ -519,96 +525,117 @@ ProcessFreeBSDKernel::DebuggerInitialize (lldb_private::Debugger &debugger)
     }
 }
 
-class CommandObjectProcessFreeBSDKernelPacketSend : public CommandObjectParsed
+lldb::addr_t ProcessFreeBSDKernel::LookUpSymbolAddressInModule(lldb::ModuleSP module,
+                                                               const char *name)
 {
-private:
-
-    OptionGroupOptions m_option_group;
-    OptionGroupUInt64 m_command_byte;
-    OptionGroupString m_packet_data;
-
-    virtual Options *
-    GetOptions ()
+    lldb_private::SymbolVendor *sym_vendor = module->GetSymbolVendor ();
+    if (sym_vendor)
     {
-        return &m_option_group;
-    }
-
-
-public:
-    CommandObjectProcessFreeBSDKernelPacketSend(CommandInterpreter &interpreter) :
-        CommandObjectParsed (interpreter,
-                             "process plugin packet send",
-                             "Send a custom packet through the KDP protocol by specifying the command byte and the packet payload data. A packet will be sent with a correct header and payload, and the raw result bytes will be displayed as a string value. ",
-                             NULL),
-        m_option_group (interpreter),
-        m_command_byte(LLDB_OPT_SET_1, true , "command", 'c', 0, eArgTypeNone, "Specify the command byte to use when sending the KDP request packet.", 0),
-        m_packet_data (LLDB_OPT_SET_1, false, "payload", 'p', 0, eArgTypeNone, "Specify packet payload bytes as a hex ASCII string with no spaces or hex prefixes.", NULL)
-    {
-        m_option_group.Append (&m_command_byte, LLDB_OPT_SET_ALL, LLDB_OPT_SET_1);
-        m_option_group.Append (&m_packet_data , LLDB_OPT_SET_ALL, LLDB_OPT_SET_1);
-        m_option_group.Finalize();
-    }
-
-    ~CommandObjectProcessFreeBSDKernelPacketSend ()
-    {
-    }
-
-    bool
-    DoExecute (Args& command, CommandReturnObject &result)
-    {
-        const size_t argc = command.GetArgumentCount();
-        if (argc == 0)
+        lldb_private::Symtab *symtab = sym_vendor->GetSymtab();
+        if (symtab)
         {
+            std::vector<uint32_t> match_indexes;
+            ConstString symbol_name (name);
+            uint32_t num_matches = 0;
+
+            num_matches = symtab->AppendSymbolIndexesWithName (symbol_name,
+                                                               match_indexes);
+
+            if (num_matches > 0)
+            {
+
+                Symbol *symbol = symtab->SymbolAtIndex(match_indexes[0]);
+                return symbol->GetAddress().GetFileAddress();
+            }
         }
-        else
-        {
-            result.AppendErrorWithFormat ("'%s' takes no arguments, only options.", m_cmd_name.c_str());
-            result.SetStatus (eReturnStatusFailed);
-        }
+    }
+    return 0;
+}
+
+bool ProcessFreeBSDKernel::InitializeThreads()
+{
+    ModuleSP module = GetTarget().GetExecutableModule();
+    lldb::addr_t addr, paddr;
+
+    addr = LookUpSymbolAddressInModule(module, "allproc");
+    if (addr == 0)
         return false;
-    }
-};
+    kvm_read(m_kvm, addr, &paddr, sizeof(paddr));
 
-class CommandObjectProcessFreeBSDKernelPacket : public CommandObjectMultiword
+    m_dumppcb = LookUpSymbolAddressInModule(module, "dumppcb");
+    if (m_dumppcb == 0)
+        return false;
+
+    addr = LookUpSymbolAddressInModule(module, "dumppcb");
+    if (addr == 0)
+        m_dumptid = -1;
+    else
+        kvm_read(m_kvm, addr, &m_dumptid, sizeof(m_dumptid));
+
+    addr = LookUpSymbolAddressInModule(module, "stopped_cpus");
+    CPU_ZERO(&m_stopped_cpus);
+    m_cpusetsize = sysconf(_SC_CPUSET_SIZE);
+    if (m_cpusetsize != -1 && (unsigned long)m_cpusetsize <= sizeof(cpuset_t) &&
+        addr != 0)
+        kvm_read(m_kvm, addr, &m_stopped_cpus, m_cpusetsize);
+
+    AddProcs(paddr);
+    addr = LookUpSymbolAddressInModule(module, "zombproc");
+    if (addr != 0)
+    {
+        kvm_read(m_kvm, addr, &paddr, sizeof(paddr));
+        AddProcs(paddr);
+    }
+    // curkthr = kgdb_thr_lookup_tid(dumptid);
+    // if (curkthr == NULL)
+    //     curkthr = first;
+    return true;
+}
+
+void
+ProcessFreeBSDKernel::AddProcs(uintptr_t paddr)
 {
-private:
+    Log *log (ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_PROCESS));
+    struct proc p;
+    struct thread td;
+    addr_t addr;
 
-public:
-    CommandObjectProcessFreeBSDKernelPacket(CommandInterpreter &interpreter) :
-    CommandObjectMultiword (interpreter,
-                            "process plugin packet",
-                            "Commands that deal with KDP remote packets.",
-                            NULL)
-    {
-        LoadSubCommand ("send", CommandObjectSP (new CommandObjectProcessFreeBSDKernelPacketSend (interpreter)));
+    while (paddr != 0) {
+        if (kvm_read(m_kvm, paddr, &p, sizeof(p)) != sizeof(p)) {
+            if (log)
+                log->Printf("kvm_read: %s", kvm_geterr(m_kvm));
+            break;
+        }
+        addr = (addr_t)TAILQ_FIRST(&p.p_threads);
+        while (addr != 0) {
+            if (kvm_read(m_kvm, addr, &td, sizeof(td)) !=
+                sizeof(td)) {
+                if (log)
+                    log->Printf("kvm_read: %s", kvm_geterr(m_kvm));
+                break;
+            }
+
+            ThreadSP thread_sp;
+            ThreadFreeBSDKernel * kthread =
+                CreateNewThreadFreeBSDKernel(*this, td.td_tid);
+
+            kthread->m_kaddr = addr;
+            if ((lldb::tid_t)td.td_tid == m_dumptid)
+                kthread->m_pcb = m_dumppcb;
+            else if (TD_IS_RUNNING(&td) &&
+                     CPU_ISSET(td.td_oncpu, &m_stopped_cpus))
+                kthread->m_pcb = m_dumppcb;
+                // kt.m_pcb = kgdb_trgt_core_pcb(td.td_oncpu);
+            else
+                kthread->m_pcb = (addr_t)td.td_pcb;
+            kthread->m_kstack = td.td_kstack;
+            kthread->m_pid = p.p_pid;
+            kthread->m_paddr = paddr;
+            kthread->m_cpu = td.td_oncpu;
+            thread_sp.reset(kthread);
+            m_kthreads.insert(m_kthreads.begin(), thread_sp);
+            addr = (addr_t)TAILQ_NEXT(&td, td_plist);
+        }
+        paddr = (addr_t)LIST_NEXT(&p, p_list);
     }
-
-    ~CommandObjectProcessFreeBSDKernelPacket ()
-    {
-    }
-};
-
-class CommandObjectMultiwordProcessFreeBSDKernel : public CommandObjectMultiword
-{
-public:
-    CommandObjectMultiwordProcessFreeBSDKernel (CommandInterpreter &interpreter) :
-    CommandObjectMultiword (interpreter,
-                            "process plugin",
-                            "A set of commands for operating on a ProcessFreeBSDKernel process.",
-                            "process plugin <subcommand> [<subcommand-options>]")
-    {
-        LoadSubCommand ("packet", CommandObjectSP (new CommandObjectProcessFreeBSDKernelPacket    (interpreter)));
-    }
-
-    ~CommandObjectMultiwordProcessFreeBSDKernel ()
-    {
-    }
-};
-
-CommandObject *
-ProcessFreeBSDKernel::GetPluginCommandObject()
-{
-    if (!m_command_sp)
-        m_command_sp.reset (new CommandObjectMultiwordProcessFreeBSDKernel (GetTarget().GetDebugger().GetCommandInterpreter()));
-    return m_command_sp.get();
 }

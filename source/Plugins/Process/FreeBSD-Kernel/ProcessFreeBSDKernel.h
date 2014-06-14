@@ -1,4 +1,4 @@
-//===-- ProcessFreeBSDKernel.h ------------------------------------------*- C++ -*-===//
+//===-- ProcessFreeBSDKernel.h ----------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -12,14 +12,19 @@
 
 // C Includes
 #include <kvm.h>
+#include <sys/proc.h>
+#include <sys/cpuset.h>
 
 // C++ Includes
 
 // Other libraries and framework includes
+#include "ThreadFreeBSDKernel.h"
+
 #include "lldb/Core/ArchSpec.h"
 #include "lldb/Core/Broadcaster.h"
 #include "lldb/Core/ConstString.h"
 #include "lldb/Core/Error.h"
+#include "lldb/Core/Module.h"
 #include "lldb/Core/StreamString.h"
 #include "lldb/Core/StringList.h"
 #include "lldb/Core/ThreadSafeValue.h"
@@ -28,6 +33,7 @@
 #include "lldb/Target/Thread.h"
 
 class ProcessMonitor;
+class ThreadFreeBSDKernel;
 
 class ProcessFreeBSDKernel :
     public lldb_private::Process
@@ -72,9 +78,6 @@ public:
     virtual bool
     CanDebug (lldb_private::Target &target,
               bool plugin_specified_by_name);
-
-    virtual lldb_private::CommandObject *
-    GetPluginCommandObject();
 
     //------------------------------------------------------------------
     // Creating a new process, or attaching to an existing one
@@ -191,6 +194,9 @@ public:
     virtual lldb_private::Error
     DisableWatchpoint (lldb_private::Watchpoint *wp, bool notify = true);
 
+    lldb::addr_t
+    LookUpSymbolAddressInModule(lldb::ModuleSP  module,
+                                const char *sym_name);
 protected:
 
     //----------------------------------------------------------------------
@@ -230,9 +236,9 @@ protected:
     UpdateThreadList (lldb_private::ThreadList &old_thread_list,
                       lldb_private::ThreadList &new_thread_list);
 
-    lldb::ThreadSP
-    GetKernelThread ();
-
+    ThreadFreeBSDKernel *
+    CreateNewThreadFreeBSDKernel(lldb_private::Process &process,
+                                 lldb::tid_t tid);
     private:
     //------------------------------------------------------------------
     // For ProcessFreeBSDKernel only
@@ -241,10 +247,19 @@ protected:
     lldb_private::ConstString m_dyld_plugin_name;
     lldb_private::ConstString m_kernel_image_file_name;
     lldb_private::FileSpec m_core_file;
-    lldb::addr_t m_kernel_load_addr;
+    lldb::tid_t m_dumptid;
+    long m_cpusetsize;
+    cpuset_t m_stopped_cpus;
+    lldb::addr_t m_kernel_load_addr, m_dumppcb;
     lldb::CommandObjectSP m_command_sp;
     lldb::ThreadWP m_kernel_thread_wp;
     kvm_t *m_kvm;
+    std::vector<lldb::ThreadSP> m_kthreads;
+
+
+    void AddProcs(uintptr_t paddr);
+
+    bool InitializeThreads();
 
     DISALLOW_COPY_AND_ASSIGN (ProcessFreeBSDKernel);
 };

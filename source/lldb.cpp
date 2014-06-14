@@ -90,6 +90,7 @@
 
 #if defined (__FreeBSD__)
 #include "Plugins/Process/POSIX/ProcessPOSIX.h"
+#include "Plugins/Process/FreeBSD-Kernel/ProcessFreeBSDKernel.h"
 #include "Plugins/Process/FreeBSD/ProcessFreeBSD.h"
 #endif
 
@@ -242,6 +243,7 @@ lldb_private::Initialize ()
 #endif
 #if defined (__FreeBSD__)
         ProcessFreeBSD::Initialize();
+        ProcessFreeBSDKernel::Initialize();
 #endif
 #if defined (__APPLE__)
         SymbolVendorMacOSX::Initialize();
@@ -360,6 +362,7 @@ lldb_private::Terminate ()
 
 #if defined (__FreeBSD__)
         ProcessFreeBSD::Terminate();
+        ProcessFreeBSDKernel::Terminate();
 #endif
         Debugger::SettingsTerminate ();
 

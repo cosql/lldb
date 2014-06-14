@@ -21,6 +21,7 @@ endif ()
 if ( CMAKE_SYSTEM_NAME MATCHES "FreeBSD" )
 include_directories(
   Plugins/Process/FreeBSD
+  Plugins/Process/FreeBSD-Kernel
   Plugins/Process/POSIX
   )
 endif ()
