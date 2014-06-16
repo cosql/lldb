@@ -65,6 +65,11 @@ public:
 
     bool
     ShouldStop (bool &step_more);
+
+    lldb::addr_t GetPCB()
+    {
+        return m_pcb;
+    }
 protected:
     friend class ProcessFreeBSDKernel;
     //------------------------------------------------------------------

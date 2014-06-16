@@ -121,7 +121,7 @@ ThreadFreeBSDKernel::CreateRegisterContextForFrame (StackFrame *frame)
         case llvm::Triple::x86:
         case llvm::Triple::x86_64:
             {
-                RegisterContextFreeBSDKernel_x86_64 *reg_ctx = 
+                RegisterContextFreeBSDKernel_x86_64 *reg_ctx =
                     new RegisterContextFreeBSDKernel_x86_64(*this, reg_interface);
                 m_reg_context_sp.reset(reg_ctx);
                 break;

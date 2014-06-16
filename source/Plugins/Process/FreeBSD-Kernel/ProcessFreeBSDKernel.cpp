@@ -142,7 +142,7 @@ ProcessFreeBSDKernel::CanDebug(Target &target, bool plugin_specified_by_name)
             ObjectFile *exe_objfile = exe_module->GetObjectFile();
             if (exe_objfile->GetType() == ObjectFile::eTypeExecutable) // &&
                 // exe_objfile->GetStrata() == ObjectFile::eStrataKernel)
-            {     
+            {
                 return true;
             }
             break;
