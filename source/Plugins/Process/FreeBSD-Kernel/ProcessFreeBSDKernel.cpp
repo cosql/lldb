@@ -120,6 +120,27 @@ ProcessFreeBSDKernel::CreateInstance (Target &target,
                             const FileSpec *crash_file_path)
 {
     lldb::ProcessSP process_sp;
+    // Check if the target is potentially a FreeBSD kernel image
+    lldb_private::SymbolVendor *sym_vendor =
+        target.GetExecutableModule()->GetSymbolVendor ();
+    if (sym_vendor)
+    {
+        lldb_private::Symtab *symtab = sym_vendor->GetSymtab();
+        if (symtab)
+        {
+            std::vector<uint32_t> match_indexes;
+            ConstString symbol_name ("kern_open");
+            uint32_t num_matches = 0;
+
+            num_matches = symtab->AppendSymbolIndexesWithName (symbol_name,
+                                                               match_indexes);
+
+            if (num_matches == 0)
+            {
+                return process_sp;
+            }
+        }
+    }
     process_sp.reset(new ProcessFreeBSDKernel (target, listener, *crash_file_path));
     return process_sp;
 }
