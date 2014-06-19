@@ -20,6 +20,38 @@
 using namespace lldb;
 using namespace lldb_private;
 
+namespace {
+    typedef struct _GPR
+    {
+        uint64_t r15;
+        uint64_t r14;
+        uint64_t r13;
+        uint64_t r12;
+        uint64_t r11;
+        uint64_t r10;
+        uint64_t r9;
+        uint64_t r8;
+        uint64_t rdi;
+        uint64_t rsi;
+        uint64_t rbp;
+        uint64_t rbx;
+        uint64_t rdx;
+        uint64_t rcx;
+        uint64_t rax;
+        uint32_t trapno;
+        uint16_t fs;
+        uint16_t gs;
+        uint32_t err;
+        uint16_t es;
+        uint16_t ds;
+        uint64_t rip;
+        uint64_t cs;
+        uint64_t rflags;
+        uint64_t rsp;
+        uint64_t ss;
+    } GPR;
+}
+
 RegisterContextFreeBSDKernel_x86_64::RegisterContextFreeBSDKernel_x86_64(Thread &thread,
                                                                          RegisterInfoInterface *register_info)
     : RegisterContextPOSIX_x86 (thread, 0, register_info)
@@ -65,26 +97,24 @@ RegisterContextFreeBSDKernel_x86_64::ReadRegister(const RegisterInfo *reg_info, 
     if (process_sp)
     {
         ThreadFreeBSDKernel *kthread = static_cast<ThreadFreeBSDKernel*>(&m_thread);
-        if (process_sp->ReadMemory(kthread->GetPCB(), &pcb, sizeof(pcb), error) == 0)
+        if (process_sp->ReadMemory(kthread->GetPCB(), &pcb, sizeof(pcb), error) != sizeof(pcb))
         {
             return false;
         }
         else
         {
-            size_t size = GetGPRSize();
-            uint8_t* data = new uint8_t[size];
+            GPR gpr;
+            gpr.rbx = (uint64_t)pcb.pcb_rbx;
+            gpr.rbp = (uint64_t)pcb.pcb_rbp;
+            gpr.rsp = (uint64_t)pcb.pcb_rsp;
+            gpr.r12 = (uint64_t)pcb.pcb_r12;
+            gpr.r13 = (uint64_t)pcb.pcb_r13;
+            gpr.r14 = (uint64_t)pcb.pcb_r14;
+            gpr.r15 = (uint64_t)pcb.pcb_r15;
+            gpr.rip = (uint64_t)pcb.pcb_rip;
 
-//          *(uint64_t*)(data + sizeof(uint64_t)*gpr_rbx_x86_64) = (uint64_t)pcb.pcb_rbx;
-            *(uint64_t*)(data + 80) = (uint64_t)pcb.pcb_rbp;
-//          *(uint64_t*)(data + sizeof(uint64_t)*gpr_rsp_x86_64) = (uint64_t)pcb.pcb_rsp;
-//          *(uint64_t*)(data + sizeof(uint64_t)*gpr_r12_x86_64) = (uint64_t)pcb.pcb_r12;
-//          *(uint64_t*)(data + sizeof(uint64_t)*gpr_r13_x86_64) = (uint64_t)pcb.pcb_r13;
-//          *(uint64_t*)(data + sizeof(uint64_t)*gpr_r14_x86_64) = (uint64_t)pcb.pcb_r14;
-//          *(uint64_t*)(data + sizeof(uint64_t)*gpr_r15_x86_64) = (uint64_t)pcb.pcb_r15;
-            *(uint64_t*)(data + 136) = (uint64_t)pcb.pcb_rip;
-            value = *(uint64_t *)(data + reg_info->byte_offset);
-            printf("register name %s offset %d\n", reg_info->name, reg_info->byte_offset);
-            delete [] data;
+            value = *(uint64_t *)((char *)&gpr + reg_info->byte_offset);
+
             return true;
         }
     }
@@ -113,4 +143,10 @@ bool
 RegisterContextFreeBSDKernel_x86_64::HardwareSingleStep(bool enable)
 {
     return false;
+}
+
+size_t
+RegisterContextFreeBSDKernel_x86_64::GetGPRSize()
+{
+    return sizeof(GPR);
 }

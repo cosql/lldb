@@ -36,6 +36,8 @@ public:
     bool
     HardwareSingleStep(bool enable);
 
+    size_t
+    GetGPRSize();
 protected:
     bool
     ReadGPR();
