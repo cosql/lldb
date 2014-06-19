@@ -587,7 +587,7 @@ bool ProcessFreeBSDKernel::InitializeThreads()
     if (m_dumppcb == 0)
         return false;
 
-    addr = LookUpSymbolAddressInModule(module, "dumppcb");
+    addr = LookUpSymbolAddressInModule(module, "dumptid");
     if (addr == 0)
         m_dumptid = -1;
     else
@@ -646,15 +646,16 @@ ProcessFreeBSDKernel::AddProcs(uintptr_t paddr)
             else if (TD_IS_RUNNING(&td) &&
                      CPU_ISSET(td.td_oncpu, &m_stopped_cpus))
                 kthread->m_pcb = m_dumppcb;
-                // kt.m_pcb = kgdb_trgt_core_pcb(td.td_oncpu);
+            // kt.m_pcb = kgdb_trgt_core_pcb(td.td_oncpu);
             else
                 kthread->m_pcb = (addr_t)td.td_pcb;
             kthread->m_kstack = td.td_kstack;
             kthread->m_pid = p.p_pid;
+            kthread->m_tid = td.td_tid;
             kthread->m_paddr = paddr;
             kthread->m_cpu = td.td_oncpu;
             thread_sp.reset(kthread);
-            m_kthreads.insert(m_kthreads.begin(), thread_sp);
+            m_kthreads.push_back(thread_sp);
             addr = (addr_t)TAILQ_NEXT(&td, td_plist);
         }
         paddr = (addr_t)LIST_NEXT(&p, p_list);
