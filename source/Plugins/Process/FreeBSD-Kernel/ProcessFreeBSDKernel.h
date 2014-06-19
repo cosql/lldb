@@ -247,7 +247,7 @@ protected:
     lldb_private::ConstString m_dyld_plugin_name;
     lldb_private::ConstString m_kernel_image_file_name;
     lldb_private::FileSpec m_core_file;
-    lldb::tid_t m_dumptid;
+    uint32_t m_dumptid;
     long m_cpusetsize;
     cpuset_t m_stopped_cpus;
     lldb::addr_t m_kernel_load_addr, m_dumppcb;
