@@ -392,14 +392,12 @@ ProcessFreeBSDKernel::DoDetach(bool keep_stopped)
     if (log)
         log->Printf ("ProcessFreeBSDKernel::DoDetach(keep_stopped = %i)", keep_stopped);
 
-    //KillDebugserverProcess ();
     return error;
 }
 
 Error
 ProcessFreeBSDKernel::DoDestroy ()
 {
-    // For KDP there really is no difference between destroy and detach
     bool keep_stopped = false;
     return DoDetach(keep_stopped);
 }
