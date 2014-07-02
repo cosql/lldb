@@ -20,46 +20,41 @@
 using namespace lldb;
 using namespace lldb_private;
 
-namespace {
-    typedef struct _GPR
-    {
-        uint64_t r15;
-        uint64_t r14;
-        uint64_t r13;
-        uint64_t r12;
-        uint64_t r11;
-        uint64_t r10;
-        uint64_t r9;
-        uint64_t r8;
-        uint64_t rdi;
-        uint64_t rsi;
-        uint64_t rbp;
-        uint64_t rbx;
-        uint64_t rdx;
-        uint64_t rcx;
-        uint64_t rax;
-        uint32_t trapno;
-        uint16_t fs;
-        uint16_t gs;
-        uint32_t err;
-        uint16_t es;
-        uint16_t ds;
-        uint64_t rip;
-        uint64_t cs;
-        uint64_t rflags;
-        uint64_t rsp;
-        uint64_t ss;
-    } GPR;
-}
-
 RegisterContextFreeBSDKernel_x86_64::RegisterContextFreeBSDKernel_x86_64(Thread &thread,
                                                                          RegisterInfoInterface *register_info)
-    : RegisterContextPOSIX_x86 (thread, 0, register_info)
+    : RegisterContextPOSIX_x86 (thread, 0, register_info),
+      m_gpr(nullptr)
 {
+    ProcessSP process_sp (CalculateProcess());
+    Error error;
+    struct pcb pcb;
+    if (process_sp)
+    {
+        ThreadFreeBSDKernel *kthread = static_cast<ThreadFreeBSDKernel*>(&m_thread);
+        if (process_sp->ReadMemory(kthread->GetPCB(), &pcb, sizeof(pcb), error) != sizeof(pcb))
+        {
+            return;
+        }
+        else
+        {
+            m_gpr  = new GPR;
+            memset(m_gpr, 0, sizeof(GPR));
+            m_gpr->rbx = (uint64_t)pcb.pcb_rbx;
+            m_gpr->rbp = (uint64_t)pcb.pcb_rbp;
+            m_gpr->rsp = (uint64_t)pcb.pcb_rsp;
+            m_gpr->r12 = (uint64_t)pcb.pcb_r12;
+            m_gpr->r13 = (uint64_t)pcb.pcb_r13;
+            m_gpr->r14 = (uint64_t)pcb.pcb_r14;
+            m_gpr->r15 = (uint64_t)pcb.pcb_r15;
+            m_gpr->rip = (uint64_t)pcb.pcb_rip;
+
+        }
+    }
 }
 
 RegisterContextFreeBSDKernel_x86_64::~RegisterContextFreeBSDKernel_x86_64()
 {
+    delete m_gpr;
 }
 
 bool
@@ -91,32 +86,11 @@ RegisterContextFreeBSDKernel_x86_64::WriteFPR()
 bool
 RegisterContextFreeBSDKernel_x86_64::ReadRegister(const RegisterInfo *reg_info, RegisterValue &value)
 {
-    ProcessSP process_sp (CalculateProcess());
-    Error error;
-    struct pcb pcb;
-    if (process_sp)
+    if (m_gpr)
     {
-        ThreadFreeBSDKernel *kthread = static_cast<ThreadFreeBSDKernel*>(&m_thread);
-        if (process_sp->ReadMemory(kthread->GetPCB(), &pcb, sizeof(pcb), error) != sizeof(pcb))
-        {
-            return false;
-        }
-        else
-        {
-            GPR gpr;
-            gpr.rbx = (uint64_t)pcb.pcb_rbx;
-            gpr.rbp = (uint64_t)pcb.pcb_rbp;
-            gpr.rsp = (uint64_t)pcb.pcb_rsp;
-            gpr.r12 = (uint64_t)pcb.pcb_r12;
-            gpr.r13 = (uint64_t)pcb.pcb_r13;
-            gpr.r14 = (uint64_t)pcb.pcb_r14;
-            gpr.r15 = (uint64_t)pcb.pcb_r15;
-            gpr.rip = (uint64_t)pcb.pcb_rip;
+        value = *(uint64_t *)((char *)m_gpr + reg_info->byte_offset);
 
-            value = *(uint64_t *)((char *)&gpr + reg_info->byte_offset);
-
-            return true;
-        }
+        return true;
     }
     return false;
 }
