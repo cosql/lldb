@@ -211,6 +211,9 @@ endif()
 # Need to export the API in the liblldb.dll for Windows
 # The lldbAPI source files are added directly in liblldb
 if ( CMAKE_SYSTEM_NAME MATCHES "Windows" )
+# On Non-Windows, the corresponding file list is maintained in
+# source\API\CMakeLists.txt.  When editing this list, do not forget to make a
+# corresponding change in that file as well (when appropriate).
 add_lldb_library(liblldb
   lldb.cpp
   lldb-log.cpp
@@ -261,6 +264,7 @@ add_lldb_library(liblldb
   API/SBTypeNameSpecifier.cpp
   API/SBTypeSummary.cpp
   API/SBTypeSynthetic.cpp
+  API/SBUnixSignals.cpp
   API/SBValue.cpp
   API/SBValueList.cpp
   API/SBWatchpoint.cpp
@@ -326,6 +330,15 @@ endif ()
 # FIXME: implement svn/git revision and repository parsing solution on Windows. There is an SVN-only
 #        revision parsing solution in tools/clang/lib/Basic/CMakelists.txt.
 
+if ( LLDB_ENABLE_PYTHON_SCRIPTS_SWIG_API_GENERATION )
+	# Add a Post-Build Event to copy over Python files and create the symlink to liblldb.so for the Python API(hardlink on Windows)
+	if ( NOT LLDB_DISABLE_PYTHON )
+	add_custom_command( TARGET liblldb
+	    POST_BUILD
+	    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/finishSwigWrapperClasses.py "--srcRoot=${LLDB_SOURCE_DIR}" "--targetDir=${CMAKE_CURRENT_BINARY_DIR}" "--cfgBldDir=${CMAKE_CURRENT_BINARY_DIR}" "--prefix=${CMAKE_BINARY_DIR}" "--cmakeBuildConfiguration=${CMAKE_CFG_INTDIR}" -m
+	    COMMENT "Python script sym-linking LLDB Python API")
+	endif ()
+endif ()
 
 install(TARGETS liblldb
   RUNTIME DESTINATION bin

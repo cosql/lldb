@@ -14,6 +14,7 @@
 
 #include <string>
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/COFF.h"
 #include "llvm/Support/ELF.h"
 #include "llvm/Support/Host.h"
@@ -112,7 +113,9 @@ static const CoreDefinition g_core_definitions[ArchSpec::kNumCores] =
     { eByteOrderLittle, 4, 4, 4, llvm::Triple::hexagon , ArchSpec::eCore_hexagon_hexagonv5,  "hexagonv5" },
 
     { eByteOrderLittle, 4, 4, 4 , llvm::Triple::UnknownArch , ArchSpec::eCore_uknownMach32  , "unknown-mach-32" },
-    { eByteOrderLittle, 8, 4, 4 , llvm::Triple::UnknownArch , ArchSpec::eCore_uknownMach64  , "unknown-mach-64" }
+    { eByteOrderLittle, 8, 4, 4 , llvm::Triple::UnknownArch , ArchSpec::eCore_uknownMach64  , "unknown-mach-64" },
+
+    { eByteOrderLittle, 4, 1, 1 , llvm::Triple::UnknownArch , ArchSpec::eCore_kalimba  , "kalimba" }
 };
 
 struct ArchDefinitionEntry
@@ -227,7 +230,7 @@ static const ArchDefinitionEntry g_macho_arch_entries[] =
 };
 static const ArchDefinition g_macho_arch_def = {
     eArchTypeMachO,
-    sizeof(g_macho_arch_entries)/sizeof(g_macho_arch_entries[0]),
+    llvm::array_lengthof(g_macho_arch_entries),
     g_macho_arch_entries,
     "mach-o"
 };
@@ -248,12 +251,14 @@ static const ArchDefinitionEntry g_elf_arch_entries[] =
     { ArchSpec::eCore_sparc9_generic  , llvm::ELF::EM_SPARCV9, LLDB_INVALID_CPUTYPE, 0xFFFFFFFFu, 0xFFFFFFFFu }, // SPARC V9
     { ArchSpec::eCore_x86_64_x86_64   , llvm::ELF::EM_X86_64 , LLDB_INVALID_CPUTYPE, 0xFFFFFFFFu, 0xFFFFFFFFu }, // AMD64
     { ArchSpec::eCore_mips64          , llvm::ELF::EM_MIPS   , LLDB_INVALID_CPUTYPE, 0xFFFFFFFFu, 0xFFFFFFFFu }, // MIPS
-    { ArchSpec::eCore_hexagon_generic , llvm::ELF::EM_HEXAGON, LLDB_INVALID_CPUTYPE, 0xFFFFFFFFu, 0xFFFFFFFFu }  // HEXAGON
+    { ArchSpec::eCore_hexagon_generic , llvm::ELF::EM_HEXAGON, LLDB_INVALID_CPUTYPE, 0xFFFFFFFFu, 0xFFFFFFFFu }, // HEXAGON
+    { ArchSpec::eCore_kalimba ,         llvm::ELF::EM_CSR_KALIMBA, LLDB_INVALID_CPUTYPE, 0xFFFFFFFFu, 0xFFFFFFFFu }  // KALIMBA
+
 };
 
 static const ArchDefinition g_elf_arch_def = {
     eArchTypeELF,
-    sizeof(g_elf_arch_entries)/sizeof(g_elf_arch_entries[0]),
+    llvm::array_lengthof(g_elf_arch_entries),
     g_elf_arch_entries,
     "elf",
 };
@@ -271,7 +276,7 @@ static const ArchDefinitionEntry g_coff_arch_entries[] =
 
 static const ArchDefinition g_coff_arch_def = {
     eArchTypeCOFF,
-    sizeof(g_coff_arch_entries)/sizeof(g_coff_arch_entries[0]),
+    llvm::array_lengthof(g_coff_arch_entries),
     g_coff_arch_entries,
     "pe-coff",
 };
@@ -284,8 +289,7 @@ static const ArchDefinition *g_arch_definitions[] = {
     &g_coff_arch_def
 };
 
-static const size_t k_num_arch_definitions =
-    sizeof(g_arch_definitions) / sizeof(g_arch_definitions[0]);
+static const size_t k_num_arch_definitions = llvm::array_lengthof(g_arch_definitions);
 
 //===----------------------------------------------------------------------===//
 // Static helper functions.

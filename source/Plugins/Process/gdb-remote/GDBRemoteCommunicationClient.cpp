@@ -17,6 +17,7 @@
 #include <sstream>
 
 // Other libraries and framework includes
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Triple.h"
 #include "lldb/Interpreter/Args.h"
 #include "lldb/Core/ConnectionFileDescriptor.h"
@@ -1119,7 +1120,7 @@ GDBRemoteCommunicationClient::SendAsyncSignal (int signo)
 // then the caller that requested the interrupt will want to keep the sequence
 // locked down so that no one else can send packets while the caller has control.
 // This function usually gets called when we are running and need to stop the 
-// target. It can also be used when we are running and and we need to do something
+// target. It can also be used when we are running and we need to do something
 // else (like read/write memory), so we need to interrupt the running process
 // (gdb remote protocol requires this), and do what we need to do, then resume.
 
@@ -1267,7 +1268,7 @@ int
 GDBRemoteCommunicationClient::SendArgumentsPacket (const ProcessLaunchInfo &launch_info)
 {
     // Since we don't get the send argv0 separate from the executable path, we need to
-    // make sure to use the actual exectuable path found in the launch_info...
+    // make sure to use the actual executable path found in the launch_info...
     std::vector<const char *> argv;
     FileSpec exe_file = launch_info.GetExecutableFile();
     std::string exe_path;
@@ -1585,6 +1586,8 @@ GDBRemoteCommunicationClient::GetGDBServerProgramVersion()
 bool
 GDBRemoteCommunicationClient::GetHostInfo (bool force)
 {
+    Log *log (ProcessGDBRemoteLog::GetLogIfAnyCategoryIsSet (GDBR_LOG_PROCESS));
+
     if (force || m_qHostInfo_is_valid == eLazyBoolCalculate)
     {
         m_qHostInfo_is_valid = eLazyBoolNo;
@@ -1818,6 +1821,9 @@ GDBRemoteCommunicationClient::GetHostInfo (bool force)
                     {
                         assert (byte_order == m_host_arch.GetByteOrder());
                     }
+
+                    if (log)
+                        log->Printf ("GDBRemoteCommunicationClient::%s parsed host architecture as %s, triple as %s from triple text %s", __FUNCTION__, m_host_arch.GetArchitectureName () ? m_host_arch.GetArchitectureName () : "<null-arch-name>", m_host_arch.GetTriple ().getTriple ().c_str(), triple.c_str ());
                 }
                 if (!distribution_id.empty ())
                     m_host_arch.SetDistributionId (distribution_id.c_str ());
@@ -1881,7 +1887,9 @@ GDBRemoteCommunicationClient::AllocateMemory (size_t size, uint32_t permissions)
         StringExtractorGDBRemote response;
         if (SendPacketAndWaitForResponse (packet, packet_len, response, false) == PacketResult::Success)
         {
-            if (!response.IsErrorResponse())
+            if (response.IsUnsupportedResponse())
+                m_supports_alloc_dealloc_memory = eLazyBoolNo;
+            else if (!response.IsErrorResponse())
                 return response.GetHexMaxU64(false, LLDB_INVALID_ADDRESS);
         }
         else
@@ -1904,7 +1912,9 @@ GDBRemoteCommunicationClient::DeallocateMemory (addr_t addr)
         StringExtractorGDBRemote response;
         if (SendPacketAndWaitForResponse (packet, packet_len, response, false) == PacketResult::Success)
         {
-            if (response.IsOKResponse())
+            if (response.IsUnsupportedResponse())
+                m_supports_alloc_dealloc_memory = eLazyBoolNo;
+            else if (response.IsOKResponse())
                 return true;
         }
         else
@@ -2251,6 +2261,25 @@ GDBRemoteCommunicationClient::SetDisableASLR (bool enable)
     }
     return -1;
 }
+
+int
+GDBRemoteCommunicationClient::SetDetachOnError (bool enable)
+{
+    char packet[32];
+    const int packet_len = ::snprintf (packet, sizeof (packet), "QSetDetachOnError:%i", enable ? 1 : 0);
+    assert (packet_len < (int)sizeof(packet));
+    StringExtractorGDBRemote response;
+    if (SendPacketAndWaitForResponse (packet, packet_len, response, false) == PacketResult::Success)
+    {
+        if (response.IsOKResponse())
+            return 0;
+        uint8_t error = response.GetError();
+        if (error)
+            return error;
+    }
+    return -1;
+}
+
 
 bool
 GDBRemoteCommunicationClient::DecodeProcessInfoResponse (StringExtractorGDBRemote &response, ProcessInstanceInfo &process_info)
@@ -2637,8 +2666,8 @@ GDBRemoteCommunicationClient::TestPacketSpeed (const uint32_t num_packets)
     {
         static uint32_t g_send_sizes[] = { 0, 64, 128, 512, 1024 };
         static uint32_t g_recv_sizes[] = { 0, 64, 128, 512, 1024 }; //, 4*1024, 8*1024, 16*1024, 32*1024, 48*1024, 64*1024, 96*1024, 128*1024 };
-        const size_t k_num_send_sizes = sizeof(g_send_sizes)/sizeof(uint32_t);
-        const size_t k_num_recv_sizes = sizeof(g_recv_sizes)/sizeof(uint32_t);
+        const size_t k_num_send_sizes = llvm::array_lengthof(g_send_sizes);
+        const size_t k_num_recv_sizes = llvm::array_lengthof(g_recv_sizes);
         const uint64_t k_recv_amount = 4*1024*1024; // Receive 4MB
         for (uint32_t send_idx = 0; send_idx < k_num_send_sizes; ++send_idx)
         {
@@ -2895,7 +2924,7 @@ GDBRemoteCommunicationClient::SendGDBStoppointTypePacket (GDBStoppointType type,
                                        type, 
                                        addr, 
                                        length);
-    // Check we havent overwritten the end of the packet buffer
+    // Check we haven't overwritten the end of the packet buffer
     assert (packet_len + 1 < (int)sizeof(packet));
     StringExtractorGDBRemote response;
     // Try to send the breakpoint packet, and check that it was correctly sent
@@ -2923,7 +2952,7 @@ GDBRemoteCommunicationClient::SendGDBStoppointTypePacket (GDBStoppointType type,
             }
         }
     }
-    // Signal generic faliure
+    // Signal generic failure
     return UINT8_MAX;
 }
 
@@ -3549,7 +3578,7 @@ GDBRemoteCommunicationClient::SaveRegisterState (lldb::tid_t tid, uint32_t &save
 bool
 GDBRemoteCommunicationClient::RestoreRegisterState (lldb::tid_t tid, uint32_t save_id)
 {
-    // We use the "m_supports_QSaveRegisterState" variable here becuase the
+    // We use the "m_supports_QSaveRegisterState" variable here because the
     // QSaveRegisterState and QRestoreRegisterState packets must both be supported in
     // order to be useful
     if (m_supports_QSaveRegisterState == eLazyBoolNo)

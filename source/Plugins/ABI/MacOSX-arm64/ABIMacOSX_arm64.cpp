@@ -26,7 +26,7 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
 
-
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Triple.h"
 
 #include "Utility/ARM64_DWARF_Registers.h"
@@ -182,7 +182,7 @@ static RegisterInfo g_register_infos[] =
     {   "d31",     NULL,     8, 0, eEncodingIEEE754 , eFormatFloat         , { LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,    LLDB_INVALID_REGNUM,        LLDB_INVALID_REGNUM,    LLDB_INVALID_REGNUM }, NULL, NULL }
 };
 
-static const uint32_t k_num_register_infos = sizeof(g_register_infos)/sizeof(RegisterInfo);
+static const uint32_t k_num_register_infos = llvm::array_lengthof(g_register_infos);
 static bool g_register_info_names_constified = false;
 
 const lldb_private::RegisterInfo *
@@ -810,14 +810,14 @@ LoadValueFromConsecutiveGPRRegisters (ExecutionContext &exe_ctx,
         const RegisterInfo *reg_info = NULL;
         if (is_return_value)
         {
-            // We are assumging we are decoding this immediately after returning
+            // We are assuming we are decoding this immediately after returning
             // from a function call and that the address of the structure is in x8
             reg_info = reg_ctx->GetRegisterInfoByName("x8", 0);
         }
         else
         {
             // We are assuming we are stopped at the first instruction in a function
-            // and that the ABI is being respected so all paramters appear where they
+            // and that the ABI is being respected so all parameters appear where they
             // should be (functions with no external linkage can legally violate the ABI).
             if (NGRN >= 8)
                 return false;
