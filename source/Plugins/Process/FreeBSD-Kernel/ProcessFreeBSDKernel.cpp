@@ -8,9 +8,7 @@
 //===----------------------------------------------------------------------===//
 
 // C Includes
-#include <errno.h>
 #include <fcntl.h>
-#include <limits.h>
 #include <stdlib.h>
 
 // C++ Includes
@@ -52,6 +50,8 @@ namespace {
         TDS_RUNQ,
         TDS_RUNNING
     };
+
+    static int pcb_size = 320;
 
     static PropertyDefinition
     g_properties[] =
@@ -642,8 +642,7 @@ ProcessFreeBSDKernel::AddProcs(uintptr_t paddr)
                 kthread->m_pcb = m_dumppcb;
             else if (TD_IS_RUNNING(&td) &&
                      CPU_ISSET(td.td_oncpu, &m_stopped_cpus))
-                kthread->m_pcb = m_dumppcb;
-            // kt.m_pcb = kgdb_trgt_core_pcb(td.td_oncpu);
+                kthread->m_pcb = FindCorePCB(td.td_oncpu);
             else
                 kthread->m_pcb = (addr_t)td.td_pcb;
             kthread->m_kstack = td.td_kstack;
@@ -657,4 +656,17 @@ ProcessFreeBSDKernel::AddProcs(uintptr_t paddr)
         }
         paddr = (addr_t)LIST_NEXT(&p, p_list);
     }
+}
+
+addr_t ProcessFreeBSDKernel::FindCorePCB(uint32_t cpuid)
+{
+    ModuleSP module = GetTarget().GetExecutableModule();
+    if (m_stoppcbs == 0) {
+        m_stoppcbs = LookUpSymbolAddressInModule(module, "stoppcbs");
+    }
+
+    if (m_stoppcbs == 0)
+        return 0;
+
+    return m_stoppcbs + cpuid * pcb_size;
 }
