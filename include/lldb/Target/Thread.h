@@ -549,7 +549,7 @@ public:
     ///
     /// @param[in] step_in_avoids_code_without_debug_info
     ///     If \a true, then avoid stepping into code that doesn't have
-    ///     debug info, else step into any code regardless of wether it
+    ///     debug info, else step into any code regardless of whether it
     ///     has debug info.
     ///
     /// @param[in] step_out_avoids_code_without_debug_info
@@ -1296,7 +1296,7 @@ protected:
     int                 m_resume_signal;        ///< The signal that should be used when continuing this thread.
     lldb::StateType     m_resume_state;         ///< This state is used to force a thread to be suspended from outside the ThreadPlan logic.
     lldb::StateType     m_temporary_resume_state; ///< This state records what the thread was told to do by the thread plan logic for the current resume.
-                                                  /// It gets set in Thread::ShoudResume.
+                                                  /// It gets set in Thread::ShouldResume.
     std::unique_ptr<lldb_private::Unwind> m_unwinder_ap;
     bool                m_destroy_called;       // This is used internally to make sure derived Thread classes call DestroyThread.
     LazyBool            m_override_should_notify;

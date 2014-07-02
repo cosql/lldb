@@ -141,6 +141,9 @@ public:
     virtual size_t
     PutSTDIN(const char *buf, size_t len, lldb_private::Error &error);
 
+    const lldb::DataBufferSP
+    GetAuxvData () override;
+
     //--------------------------------------------------------------------------
     // ProcessPOSIX internal API.
 
@@ -164,7 +167,7 @@ public:
     StopAllThreads(lldb::tid_t stop_tid);
 
     /// Adds the thread to the list of threads for which we have received the initial stopping signal.
-    /// The \p stop_tid paramter indicates the thread which the stop happened for.
+    /// The \p stop_tid parameter indicates the thread which the stop happened for.
     bool
     AddThreadForInitialStopIfNeeded(lldb::tid_t stop_tid);
 

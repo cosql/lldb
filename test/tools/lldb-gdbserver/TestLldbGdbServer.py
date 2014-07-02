@@ -63,7 +63,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
         self.thread_suffix_supported()
 
     @llgs_test
-    @unittest2.expectedFailure()
     def test_thread_suffix_supported_llgs(self):
         self.init_llgs_test()
         self.thread_suffix_supported()
@@ -85,7 +84,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
         self.list_threads_in_stop_reply_supported()
 
     @llgs_test
-    @unittest2.expectedFailure()
     def test_list_threads_in_stop_reply_supported_llgs(self):
         self.init_llgs_test()
         self.list_threads_in_stop_reply_supported()
@@ -143,7 +141,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_inferior_exit_0_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -176,7 +173,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_inferior_exit_42_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -207,7 +203,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_c_packet_works_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -240,7 +235,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_inferior_print_exit_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -272,7 +266,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_first_launch_stop_reply_thread_matches_first_qC_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -308,7 +301,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qProcessInfo_returns_running_process_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -343,7 +335,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_attach_commandline_qProcessInfo_reports_correct_pid_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -376,7 +367,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qProcessInfo_reports_valid_endian_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -410,7 +400,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_attach_commandline_continue_app_exits_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -445,7 +434,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_attach_commandline_kill_after_initial_stop_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -484,7 +472,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qRegisterInfo_returns_one_valid_result_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -519,7 +506,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qRegisterInfo_returns_all_valid_results_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -568,7 +554,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qRegisterInfo_contains_required_generics_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -606,7 +591,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qRegisterInfo_contains_at_least_one_register_set_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -635,10 +619,8 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
         register_sets = { reg_info['set']:1 for reg_info in reg_infos if 'set' in reg_info }
         self.assertTrue("Advanced Vector Extensions" in register_sets)
 
-
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qRegisterInfo_contains_avx_registers_on_linux_x86_64_llgs_dwarf(self):
         # Skip this test if not Linux x86_64.
         if platform.system() != "Linux" or platform.processor() != "x86_64":
@@ -673,7 +655,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qThreadInfo_contains_thread_launch_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -690,7 +671,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qThreadInfo_contains_thread_attach_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -735,7 +715,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qThreadInfo_matches_qC_launch_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -752,7 +731,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qThreadInfo_matches_qC_attach_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -810,7 +788,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_p_returns_correct_data_size_for_each_qRegisterInfo_launch_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -827,7 +804,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_p_returns_correct_data_size_for_each_qRegisterInfo_attach_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -873,7 +849,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_Hg_switches_to_3_threads_launch_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -890,7 +865,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_Hg_switches_to_3_threads_attach_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -1010,7 +984,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_Hc_then_Csignal_signals_correct_thread_launch_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -1073,7 +1046,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_m_packet_reads_memory_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -1101,7 +1073,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qMemoryRegionInfo_is_supported_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -1165,7 +1136,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qMemoryRegionInfo_reports_code_address_as_executable_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -1229,7 +1199,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qMemoryRegionInfo_reports_stack_address_as_readable_writeable_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -1294,7 +1263,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qMemoryRegionInfo_reports_heap_address_as_readable_writeable_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -1411,172 +1379,11 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_software_breakpoint_set_and_remove_work_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
         self.set_inferior_startup_launch()
         self.software_breakpoint_set_and_remove_work()
-
-    def g_c1_c2_contents_are(self, args):
-        g_c1_address = args["g_c1_address"]
-        g_c2_address = args["g_c2_address"]
-        expected_g_c1 = args["expected_g_c1"]
-        expected_g_c2 = args["expected_g_c2"]
-
-        # Read g_c1 and g_c2 contents.
-        self.reset_test_sequence()
-        self.test_sequence.add_log_lines(
-            ["read packet: $m{0:x},{1:x}#00".format(g_c1_address, 1),
-             {"direction":"send", "regex":r"^\$(.+)#[0-9a-fA-F]{2}$", "capture":{1:"g_c1_contents"} },
-             "read packet: $m{0:x},{1:x}#00".format(g_c2_address, 1),
-             {"direction":"send", "regex":r"^\$(.+)#[0-9a-fA-F]{2}$", "capture":{1:"g_c2_contents"} }],
-            True)
-
-        # Run the packet stream.
-        context = self.expect_gdbremote_sequence()
-        self.assertIsNotNone(context)
-
-        # Check if what we read from inferior memory is what we are expecting.
-        self.assertIsNotNone(context.get("g_c1_contents"))
-        self.assertIsNotNone(context.get("g_c2_contents"))
- 
-        return (context.get("g_c1_contents").decode("hex") == expected_g_c1) and (context.get("g_c2_contents").decode("hex") == expected_g_c2)
-
-    def count_single_steps_until_true(self, thread_id, predicate, args, max_step_count=100):
-        single_step_count = 0
-
-        while single_step_count < max_step_count:
-            # Single step.
-            self.reset_test_sequence()
-            self.test_sequence.add_log_lines(
-                [# Set the continue thread.
-                 "read packet: $Hc{0:x}#00".format(thread_id),
-                 "send packet: $OK#00",
-                 # Single step.
-                 "read packet: $s#00",
-                 # "read packet: $vCont;s:{0:x}#00".format(thread_id),
-                 # Expect a breakpoint stop report.
-                 {"direction":"send", "regex":r"^\$T([0-9a-fA-F]{2})thread:([0-9a-fA-F]+);", "capture":{1:"stop_signo", 2:"stop_thread_id"} },
-                 ], True)
-            context = self.expect_gdbremote_sequence()
-            self.assertIsNotNone(context)
-            self.assertIsNotNone(context.get("stop_signo"))
-            self.assertEquals(int(context.get("stop_signo"), 16), signal.SIGTRAP)
-
-            single_step_count += 1
-
-            # See if the predicate is true.  If so, we're done.
-            if predicate(args):
-                return (True, single_step_count)
-
-        # The predicate didn't return true within the runaway step count.
-        return (False, single_step_count)
-
-    def single_step_only_steps_one_instruction(self):
-        # Start up the inferior.
-        procs = self.prep_debug_monitor_and_inferior(
-            inferior_args=["get-code-address-hex:swap_chars", "get-data-address-hex:g_c1", "get-data-address-hex:g_c2", "sleep:1", "call-function:swap_chars", "sleep:5"])
-
-        # Run the process
-        self.test_sequence.add_log_lines(
-            [# Start running after initial stop.
-             "read packet: $c#00",
-             # Match output line that prints the memory address of the function call entry point.
-             # Note we require launch-only testing so we can get inferior otuput.
-             { "type":"output_match", "regex":r"^code address: 0x([0-9a-fA-F]+)\r\ndata address: 0x([0-9a-fA-F]+)\r\ndata address: 0x([0-9a-fA-F]+)\r\n$", 
-               "capture":{ 1:"function_address", 2:"g_c1_address", 3:"g_c2_address"} },
-             # Now stop the inferior.
-             "read packet: {}".format(chr(03)),
-             # And wait for the stop notification.
-             {"direction":"send", "regex":r"^\$T([0-9a-fA-F]{2})thread:([0-9a-fA-F]+);", "capture":{1:"stop_signo", 2:"stop_thread_id"} }],
-            True)
-
-        # Run the packet stream.
-        context = self.expect_gdbremote_sequence()
-        self.assertIsNotNone(context)
-
-        # Grab the main thread id.
-        self.assertIsNotNone(context.get("stop_thread_id"))
-        main_thread_id = int(context.get("stop_thread_id"), 16)
-
-        # Grab the function address.
-        self.assertIsNotNone(context.get("function_address"))
-        function_address = int(context.get("function_address"), 16)
-
-        # Grab the data addresses.
-        self.assertIsNotNone(context.get("g_c1_address"))
-        g_c1_address = int(context.get("g_c1_address"), 16)
-
-        self.assertIsNotNone(context.get("g_c2_address"))
-        g_c2_address = int(context.get("g_c2_address"), 16)
-
-        # Set a breakpoint at the given address.
-        # Note this might need to be switched per platform (ARM, mips, etc.).
-        BREAKPOINT_KIND = 1
-        self.reset_test_sequence()
-        self.add_set_breakpoint_packets(function_address, do_continue=True, breakpoint_kind=BREAKPOINT_KIND)
-        context = self.expect_gdbremote_sequence()
-        self.assertIsNotNone(context)
-
-        # Remove the breakpoint.
-        self.reset_test_sequence()
-        self.add_remove_breakpoint_packets(function_address, breakpoint_kind=BREAKPOINT_KIND)
-        context = self.expect_gdbremote_sequence()
-        self.assertIsNotNone(context)
-
-        # Verify g_c1 and g_c2 match expected initial state.
-        args = {}
-        args["g_c1_address"] = g_c1_address
-        args["g_c2_address"] = g_c2_address
-        args["expected_g_c1"] = "0"
-        args["expected_g_c2"] = "1"
-
-        self.assertTrue(self.g_c1_c2_contents_are(args))
-
-        # Verify we take only a small number of steps to hit the first state.  Might need to work through function entry prologue code.
-        args["expected_g_c1"] = "1"
-        args["expected_g_c2"] = "1"
-        (state_reached, step_count) = self.count_single_steps_until_true(main_thread_id, self.g_c1_c2_contents_are, args, max_step_count=25)
-        self.assertTrue(state_reached)
-
-        # Verify we hit the next state.
-        args["expected_g_c1"] = "1"
-        args["expected_g_c2"] = "0"
-        (state_reached, step_count) = self.count_single_steps_until_true(main_thread_id, self.g_c1_c2_contents_are, args, max_step_count=5)
-        self.assertTrue(state_reached)
-        self.assertEquals(step_count, 1)
-
-        # Verify we hit the next state.
-        args["expected_g_c1"] = "0"
-        args["expected_g_c2"] = "0"
-        (state_reached, step_count) = self.count_single_steps_until_true(main_thread_id, self.g_c1_c2_contents_are, args, max_step_count=5)
-        self.assertTrue(state_reached)
-        self.assertEquals(step_count, 1)
-
-        # Verify we hit the next state.
-        args["expected_g_c1"] = "0"
-        args["expected_g_c2"] = "1"
-        (state_reached, step_count) = self.count_single_steps_until_true(main_thread_id, self.g_c1_c2_contents_are, args, max_step_count=5)
-        self.assertTrue(state_reached)
-        self.assertEquals(step_count, 1)
-
-    @debugserver_test
-    @dsym_test
-    def test_single_step_only_steps_one_instruction_debugserver_dsym(self):
-        self.init_debugserver_test()
-        self.buildDsym()
-        self.set_inferior_startup_launch()
-        self.single_step_only_steps_one_instruction()
-
-    @llgs_test
-    @dwarf_test
-    @unittest2.expectedFailure()
-    def test_single_step_only_steps_one_instruction_llgs_dwarf(self):
-        self.init_llgs_test()
-        self.buildDwarf()
-        self.set_inferior_startup_launch()
-        self.single_step_only_steps_one_instruction()
 
     def qSupported_returns_known_stub_features(self):
         # Start up the stub and start/prep the inferior.
@@ -1602,7 +1409,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_qSupported_returns_known_stub_features_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -1663,105 +1469,11 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_written_M_content_reads_back_correctly_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
         self.set_inferior_startup_launch()
         self.written_M_content_reads_back_correctly()
-
-    def flip_all_bits_in_each_register_value(self, reg_infos, endian):
-        self.assertIsNotNone(reg_infos)
-
-        successful_writes = 0
-        failed_writes = 0
-
-        for reg_info in reg_infos:
-            # Use the lldb register index added to the reg info.  We're not necessarily
-            # working off a full set of register infos, so an inferred register index could be wrong. 
-            reg_index = reg_info["lldb_register_index"]
-            self.assertIsNotNone(reg_index)
-
-            reg_byte_size = int(reg_info["bitsize"])/8
-            self.assertTrue(reg_byte_size > 0)
-
-            # Read the existing value.
-            self.reset_test_sequence()
-            self.test_sequence.add_log_lines(
-                ["read packet: $p{0:x}#00".format(reg_index),
-                 { "direction":"send", "regex":r"^\$([0-9a-fA-F]+)#", "capture":{1:"p_response"} }],
-                True)
-            context = self.expect_gdbremote_sequence()
-            self.assertIsNotNone(context)
-
-            # Verify the response length.
-            p_response = context.get("p_response")
-            self.assertIsNotNone(p_response)
-            initial_reg_value = lldbgdbserverutils.unpack_register_hex_unsigned(endian, p_response)
-
-            # Flip the value by xoring with all 1s
-            all_one_bits_raw = "ff" * (int(reg_info["bitsize"]) / 8)
-            flipped_bits_int = initial_reg_value ^ int(all_one_bits_raw, 16)
-            # print "reg (index={}, name={}): val={}, flipped bits (int={}, hex={:x})".format(reg_index, reg_info["name"], initial_reg_value, flipped_bits_int, flipped_bits_int)
-
-            # Write the flipped value to the register.
-            self.reset_test_sequence()
-            self.test_sequence.add_log_lines(
-                ["read packet: $P{0:x}={1}#00".format(reg_index, lldbgdbserverutils.pack_register_hex(endian, flipped_bits_int, byte_size=reg_byte_size)),
-                { "direction":"send", "regex":r"^\$(OK|E[0-9a-fA-F]+)#[0-9a-fA-F]{2}", "capture":{1:"P_response"} },
-                ], True)
-            context = self.expect_gdbremote_sequence()
-            self.assertIsNotNone(context)
-
-            # Determine if the write succeeded.  There are a handful of registers that can fail, or partially fail
-            # (e.g. flags, segment selectors, etc.) due to register value restrictions.  Don't worry about them
-            # all flipping perfectly.
-            P_response = context.get("P_response")
-            self.assertIsNotNone(P_response)
-            if P_response == "OK":
-                successful_writes += 1
-            else:
-                failed_writes += 1
-                # print "reg (index={}, name={}) write FAILED (error: {})".format(reg_index, reg_info["name"], P_response)
-
-            # Read back the register value, ensure it matches the flipped value.
-            if P_response == "OK":
-                self.reset_test_sequence()
-                self.test_sequence.add_log_lines(
-                    ["read packet: $p{0:x}#00".format(reg_index),
-                     { "direction":"send", "regex":r"^\$([0-9a-fA-F]+)#", "capture":{1:"p_response"} }],
-                    True)
-                context = self.expect_gdbremote_sequence()
-                self.assertIsNotNone(context)
-
-                verify_p_response_raw = context.get("p_response")
-                self.assertIsNotNone(verify_p_response_raw)
-                verify_bits = lldbgdbserverutils.unpack_register_hex_unsigned(endian, verify_p_response_raw)
-
-                if verify_bits != flipped_bits_int:
-                    # Some registers, like mxcsrmask and others, will permute what's written.  Adjust succeed/fail counts.
-                    # print "reg (index={}, name={}): read verify FAILED: wrote {:x}, verify read back {:x}".format(reg_index, reg_info["name"], flipped_bits_int, verify_bits)
-                    successful_writes -= 1
-                    failed_writes +=1
-
-        return (successful_writes, failed_writes)
-
-    def is_bit_flippable_register(self, reg_info):
-        if not reg_info:
-            return False
-        if not "set" in reg_info:
-            return False
-        if reg_info["set"] != "General Purpose Registers":
-            return False
-        if ("container-regs" in reg_info) and (len(reg_info["container-regs"]) > 0):
-            # Don't try to bit flip registers contained in another register.
-            return False
-        if re.match("^.s$", reg_info["name"]):
-            # This is a 2-letter register name that ends in "s", like a segment register.
-            # Don't try to bit flip these.
-            return False
-        # Okay, this looks fine-enough.
-        return True
 
     def P_writes_all_gpr_registers(self):
         # Start inferior debug session, grab all register info.
@@ -1784,7 +1496,7 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
         # Pull out the register infos that we think we can bit flip successfully,.
         gpr_reg_infos = [reg_info for reg_info in reg_infos if self.is_bit_flippable_register(reg_info)]
-        self.assertIsNotNone(len(gpr_reg_infos) > 0)
+        self.assertTrue(len(gpr_reg_infos) > 0)
 
         # Write flipped bit pattern of existing value to each register.
         (successful_writes, failed_writes) = self.flip_all_bits_in_each_register_value(gpr_reg_infos, endian)
@@ -1803,7 +1515,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_P_writes_all_gpr_registers_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()
@@ -1912,7 +1623,6 @@ class LldbGdbServerTestCase(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @llgs_test
     @dwarf_test
-    @unittest2.expectedFailure()
     def test_P_and_p_thread_suffix_work_llgs_dwarf(self):
         self.init_llgs_test()
         self.buildDwarf()

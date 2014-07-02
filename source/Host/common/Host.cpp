@@ -66,6 +66,7 @@
 #include "lldb/Target/TargetList.h"
 #include "lldb/Utility/CleanUp.h"
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Support/raw_ostream.h"
@@ -1630,7 +1631,7 @@ Host::RunShellCommand (const char *command,
         {
             error.SetErrorString("timed out waiting for shell command to complete");
 
-            // Kill the process since it didn't complete withint the timeout specified
+            // Kill the process since it didn't complete within the timeout specified
             Kill (pid, SIGKILL);
             // Wait for the monitor callback to get the message
             timeout_time = TimeValue::Now();
@@ -2063,7 +2064,7 @@ Host::GetNumberCPUS ()
 #endif
         
         /* get the number of CPUs from the system */
-        if (sysctl(mib, sizeof(mib)/sizeof(int), &num_cores, &num_cores_len, NULL, 0) == 0 && (num_cores > 0))
+        if (sysctl(mib, llvm::array_lengthof(mib), &num_cores, &num_cores_len, NULL, 0) == 0 && (num_cores > 0))
         {
             g_num_cores = num_cores;
         }
@@ -2071,7 +2072,7 @@ Host::GetNumberCPUS ()
         {
             mib[1] = HW_NCPU;
             num_cores_len = sizeof(num_cores);
-            if (sysctl(mib, sizeof(mib)/sizeof(int), &num_cores, &num_cores_len, NULL, 0) == 0 && (num_cores > 0))
+            if (sysctl(mib, llvm::array_lengthof(mib), &num_cores, &num_cores_len, NULL, 0) == 0 && (num_cores > 0))
             {
                 if (num_cores > 0)
                     g_num_cores = num_cores;

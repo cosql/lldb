@@ -34,6 +34,7 @@
 #include "lldb/Target/StackFrame.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
 
 using namespace lldb;
@@ -71,7 +72,7 @@ CommandObjectExpression::CommandOptions::g_option_table[] =
 uint32_t
 CommandObjectExpression::CommandOptions::GetNumDefinitions ()
 {
-    return sizeof(g_option_table)/sizeof(OptionDefinition);
+    return llvm::array_lengthof(g_option_table);
 }
 
 Error
@@ -205,7 +206,7 @@ CommandObjectExpression::CommandObjectExpression (CommandInterpreter &interprete
 {
   SetHelpLong(
 "Timeouts:\n\
-    If the expression can be evaluated statically (without runnning code) then it will be.\n\
+    If the expression can be evaluated statically (without running code) then it will be.\n\
     Otherwise, by default the expression will run on the current thread with a short timeout:\n\
     currently .25 seconds.  If it doesn't return in that time, the evaluation will be interrupted\n\
     and resumed with all threads running.  You can use the -a option to disable retrying on all\n\
