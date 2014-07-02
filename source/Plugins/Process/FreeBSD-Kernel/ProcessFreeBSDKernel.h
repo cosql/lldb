@@ -250,7 +250,7 @@ protected:
     uint32_t m_dumptid;
     long m_cpusetsize;
     cpuset_t m_stopped_cpus;
-    lldb::addr_t m_kernel_load_addr, m_dumppcb;
+    lldb::addr_t m_kernel_load_addr, m_dumppcb, m_stoppcbs;
     lldb::CommandObjectSP m_command_sp;
     lldb::ThreadWP m_kernel_thread_wp;
     kvm_t *m_kvm;
@@ -258,6 +258,8 @@ protected:
 
 
     void AddProcs(uintptr_t paddr);
+
+    lldb::addr_t FindCorePCB(uint32_t cpuid);
 
     bool InitializeThreads();
 
