@@ -27,6 +27,7 @@
 #include "lldb/Expression/ClangUserExpression.h"
 #include "lldb/Interpreter/CommandInterpreter.h"
 #include "lldb/Host/Host.h"
+#include "lldb/Host/Pipe.h"
 #include "lldb/Host/Terminal.h"
 #include "lldb/Target/ABI.h"
 #include "lldb/Target/DynamicLoader.h"
@@ -485,23 +486,23 @@ ProcessLaunchCommandOptions::SetOptionValue (uint32_t option_idx, const char *op
 OptionDefinition
 ProcessLaunchCommandOptions::g_option_table[] =
 {
-{ LLDB_OPT_SET_ALL, false, "stop-at-entry", 's', OptionParser::eNoArgument,       NULL, 0, eArgTypeNone,          "Stop at the entry point of the program when launching a process."},
-{ LLDB_OPT_SET_ALL, false, "disable-aslr",  'A', OptionParser::eNoArgument,       NULL, 0, eArgTypeNone,          "Disable address space layout randomization when launching a process."},
-{ LLDB_OPT_SET_ALL, false, "plugin",        'p', OptionParser::eRequiredArgument, NULL, 0, eArgTypePlugin,        "Name of the process plugin you want to use."},
-{ LLDB_OPT_SET_ALL, false, "working-dir",   'w', OptionParser::eRequiredArgument, NULL, 0, eArgTypeDirectoryName,          "Set the current working directory to <path> when running the inferior."},
-{ LLDB_OPT_SET_ALL, false, "arch",          'a', OptionParser::eRequiredArgument, NULL, 0, eArgTypeArchitecture,  "Set the architecture for the process to launch when ambiguous."},
-{ LLDB_OPT_SET_ALL, false, "environment",   'v', OptionParser::eRequiredArgument, NULL, 0, eArgTypeNone,          "Specify an environment variable name/value string (--environment NAME=VALUE). Can be specified multiple times for subsequent environment entries."},
-{ LLDB_OPT_SET_ALL, false, "shell",         'c', OptionParser::eOptionalArgument, NULL, 0, eArgTypeFilename,          "Run the process in a shell (not supported on all platforms)."},
+{ LLDB_OPT_SET_ALL, false, "stop-at-entry", 's', OptionParser::eNoArgument,       NULL, NULL, 0, eArgTypeNone,          "Stop at the entry point of the program when launching a process."},
+{ LLDB_OPT_SET_ALL, false, "disable-aslr",  'A', OptionParser::eNoArgument,       NULL, NULL, 0, eArgTypeNone,          "Disable address space layout randomization when launching a process."},
+{ LLDB_OPT_SET_ALL, false, "plugin",        'p', OptionParser::eRequiredArgument, NULL, NULL, 0, eArgTypePlugin,        "Name of the process plugin you want to use."},
+{ LLDB_OPT_SET_ALL, false, "working-dir",   'w', OptionParser::eRequiredArgument, NULL, NULL, 0, eArgTypeDirectoryName,          "Set the current working directory to <path> when running the inferior."},
+{ LLDB_OPT_SET_ALL, false, "arch",          'a', OptionParser::eRequiredArgument, NULL, NULL, 0, eArgTypeArchitecture,  "Set the architecture for the process to launch when ambiguous."},
+{ LLDB_OPT_SET_ALL, false, "environment",   'v', OptionParser::eRequiredArgument, NULL, NULL, 0, eArgTypeNone,          "Specify an environment variable name/value string (--environment NAME=VALUE). Can be specified multiple times for subsequent environment entries."},
+{ LLDB_OPT_SET_ALL, false, "shell",         'c', OptionParser::eOptionalArgument, NULL, NULL, 0, eArgTypeFilename,          "Run the process in a shell (not supported on all platforms)."},
 
-{ LLDB_OPT_SET_1  , false, "stdin",         'i', OptionParser::eRequiredArgument, NULL, 0, eArgTypeFilename,    "Redirect stdin for the process to <filename>."},
-{ LLDB_OPT_SET_1  , false, "stdout",        'o', OptionParser::eRequiredArgument, NULL, 0, eArgTypeFilename,    "Redirect stdout for the process to <filename>."},
-{ LLDB_OPT_SET_1  , false, "stderr",        'e', OptionParser::eRequiredArgument, NULL, 0, eArgTypeFilename,    "Redirect stderr for the process to <filename>."},
+{ LLDB_OPT_SET_1  , false, "stdin",         'i', OptionParser::eRequiredArgument, NULL, NULL, 0, eArgTypeFilename,    "Redirect stdin for the process to <filename>."},
+{ LLDB_OPT_SET_1  , false, "stdout",        'o', OptionParser::eRequiredArgument, NULL, NULL, 0, eArgTypeFilename,    "Redirect stdout for the process to <filename>."},
+{ LLDB_OPT_SET_1  , false, "stderr",        'e', OptionParser::eRequiredArgument, NULL, NULL, 0, eArgTypeFilename,    "Redirect stderr for the process to <filename>."},
 
-{ LLDB_OPT_SET_2  , false, "tty",           't', OptionParser::eNoArgument,       NULL, 0, eArgTypeNone,    "Start the process in a terminal (not supported on all platforms)."},
+{ LLDB_OPT_SET_2  , false, "tty",           't', OptionParser::eNoArgument,       NULL, NULL, 0, eArgTypeNone,    "Start the process in a terminal (not supported on all platforms)."},
 
-{ LLDB_OPT_SET_3  , false, "no-stdio",      'n', OptionParser::eNoArgument,       NULL, 0, eArgTypeNone,    "Do not set up for terminal I/O to go to running process."},
+{ LLDB_OPT_SET_3  , false, "no-stdio",      'n', OptionParser::eNoArgument,       NULL, NULL, 0, eArgTypeNone,    "Do not set up for terminal I/O to go to running process."},
 
-{ 0               , false, NULL,             0,  0,                 NULL, 0, eArgTypeNone,    NULL }
+{ 0               , false, NULL,             0,  0,                 NULL, NULL, 0, eArgTypeNone,    NULL }
 };
 
 
@@ -4442,8 +4443,7 @@ public:
         m_process (process),
         m_read_file (),
         m_write_file (write_fd, false),
-        m_pipe_read(),
-        m_pipe_write()
+        m_pipe ()
     {
         m_read_file.SetDescriptor(GetInputFD(), false);
     }
@@ -4457,30 +4457,15 @@ public:
     bool
     OpenPipes ()
     {
-        if (m_pipe_read.IsValid() && m_pipe_write.IsValid())
+        if (m_pipe.IsValid())
             return true;
-
-        int fds[2];
-#ifdef _WIN32
-        // pipe is not supported on windows so default to a fail condition
-        int err = 1;
-#else
-        int err = pipe(fds);
-#endif
-        if (err == 0)
-        {
-            m_pipe_read.SetDescriptor(fds[0], true);
-            m_pipe_write.SetDescriptor(fds[1], true);
-            return true;
-        }
-        return false;
+        return m_pipe.Open();
     }
 
     void
     ClosePipes()
     {
-        m_pipe_read.Close();
-        m_pipe_write.Close();
+        m_pipe.Close();
     }
     
     // Each IOHandler gets to run until it is done. It should read data
@@ -4495,7 +4480,7 @@ public:
             if (OpenPipes())
             {
                 const int read_fd = m_read_file.GetDescriptor();
-                const int pipe_read_fd = m_pipe_read.GetDescriptor();
+                const int pipe_read_fd = m_pipe.GetReadFileDescriptor();
                 TerminalState terminal_state;
                 terminal_state.Save (read_fd, false);
                 Terminal terminal(read_fd);
@@ -4536,17 +4521,18 @@ public:
                         if (FD_ISSET (pipe_read_fd, &read_fdset))
                         {
                             // Consume the interrupt byte
-                            n = 1;
-                            m_pipe_read.Read (&ch, n);
-                            switch (ch)
+                            if (m_pipe.Read (&ch, 1) == 1)
                             {
-                                case 'q':
-                                    SetIsDone(true);
-                                    break;
-                                case 'i':
-                                    if (StateIsRunningState(m_process->GetState()))
-                                        m_process->Halt();
-                                    break;
+                                switch (ch)
+                                {
+                                    case 'q':
+                                        SetIsDone(true);
+                                        break;
+                                    case 'i':
+                                        if (StateIsRunningState(m_process->GetState()))
+                                            m_process->Halt();
+                                        break;
+                                }
                             }
                         }
                     }
@@ -4582,30 +4568,20 @@ public:
     virtual void
     Cancel ()
     {
-        size_t n = 1;
         char ch = 'q';  // Send 'q' for quit
-        m_pipe_write.Write (&ch, n);
+        m_pipe.Write (&ch, 1);
     }
 
     virtual bool
     Interrupt ()
     {
-#ifdef _MSC_VER
-        // Windows doesn't support pipes, so we will send an async interrupt
-        // event to stop the process
-        if (StateIsRunningState(m_process->GetState()))
-            m_process->SendAsyncInterrupt();
-#else
         // Do only things that are safe to do in an interrupt context (like in
         // a SIGINT handler), like write 1 byte to a file descriptor. This will
         // interrupt the IOHandlerProcessSTDIO::Run() and we can look at the byte
         // that was written to the pipe and then call m_process->Halt() from a
         // much safer location in code.
-        size_t n = 1;
         char ch = 'i'; // Send 'i' for interrupt
-        m_pipe_write.Write (&ch, n);
-#endif
-        return true;
+        return m_pipe.Write (&ch, 1) == 1;
     }
     
     virtual void
@@ -4618,9 +4594,7 @@ protected:
     Process *m_process;
     File m_read_file;   // Read from this file (usually actual STDIN for LLDB
     File m_write_file;  // Write to this file (usually the master pty for getting io to debuggee)
-    File m_pipe_read;
-    File m_pipe_write;
-
+    Pipe m_pipe;
 };
 
 void
