@@ -228,7 +228,7 @@ Host::ResolveExecutableInBundle (FileSpec &file)
 lldb::pid_t
 Host::LaunchApplication (const FileSpec &app_file_spec)
 {
-#if defined (__arm__) || defined(__arm64__)
+#if defined (__arm__) || defined(__arm64__) || defined(__aarch64__)
     return LLDB_INVALID_PROCESS_ID;
 #else
     char app_path[PATH_MAX];
@@ -321,7 +321,7 @@ WaitForProcessToSIGSTOP (const lldb::pid_t pid, const int timeout_in_seconds)
     }
     return false;
 }
-#if !defined(__arm__) && !defined(__arm64__)
+#if !defined(__arm__) && !defined(__arm64__) && !defined(__aarch64__)
 
 //static lldb::pid_t
 //LaunchInNewTerminalWithCommandFile 
@@ -669,7 +669,7 @@ LaunchInNewTerminalWithAppleScript (const char *exe_path, ProcessLaunchInfo &lau
     return error;
 }
 
-#endif // #if !defined(__arm__)
+#endif // #if !defined(__arm__) && !defined(__arm64__) && !defined(__aarch64__)
 
 
 // On MacOSX CrashReporter will display a string for each shared library if
@@ -728,7 +728,7 @@ Host::SetCrashDescription (const char *cstr)
 bool
 Host::OpenFileInExternalEditor (const FileSpec &file_spec, uint32_t line_no)
 {
-#if defined(__arm__) || defined(__arm64__)
+#if defined(__arm__) || defined(__arm64__) || defined(__aarch64__)
     return false;
 #else
     // We attach this to an 'odoc' event to specify a particular selection
@@ -837,7 +837,7 @@ Host::OpenFileInExternalEditor (const FileSpec &file_spec, uint32_t line_no)
     }
 
     return true;
-#endif // #if !defined(__arm__)
+#endif // #if !defined(__arm__) && !defined(__arm64__) && !defined(__aarch64__)
 }
 
 
@@ -917,53 +917,14 @@ Host::GetOSVersion
 
     if (g_major == 0)
     {
-        static const char *version_plist_file = "/System/Library/CoreServices/SystemVersion.plist";
-        char buffer[256];
-        const char *product_version_str = NULL;
-        
-        CFCReleaser<CFURLRef> plist_url(CFURLCreateFromFileSystemRepresentation(kCFAllocatorDefault,
-                                                                                (UInt8 *) version_plist_file,
-                                                                                strlen (version_plist_file), NO));
-        if (plist_url.get())
-        {
-            CFCReleaser<CFPropertyListRef> property_list;
-            CFCReleaser<CFStringRef>       error_string;
-            CFCReleaser<CFDataRef>         resource_data;
-            SInt32                         error_code;
-     
-            // Read the XML file.
-            if (CFURLCreateDataAndPropertiesFromResource (kCFAllocatorDefault,
-                                                          plist_url.get(),
-                                                          resource_data.ptr_address(),
-                                                          NULL,
-                                                          NULL,
-                                                          &error_code))
-            {
-                   // Reconstitute the dictionary using the XML data.
-                property_list = CFPropertyListCreateFromXMLData (kCFAllocatorDefault,
-                                                                  resource_data.get(),
-                                                                  kCFPropertyListImmutable,
-                                                                  error_string.ptr_address());
-                if (CFGetTypeID(property_list.get()) == CFDictionaryGetTypeID())
-                {
-                    CFDictionaryRef property_dict = (CFDictionaryRef) property_list.get();
-                    CFStringRef product_version_key = CFSTR("ProductVersion");
-                    CFPropertyListRef product_version_value;
-                    product_version_value = CFDictionaryGetValue(property_dict, product_version_key);
-                    if (product_version_value && CFGetTypeID(product_version_value) == CFStringGetTypeID())
-                    {
-                        CFStringRef product_version_cfstr = (CFStringRef) product_version_value;
-                        product_version_str = CFStringGetCStringPtr(product_version_cfstr, kCFStringEncodingUTF8);
-                        if (product_version_str != NULL) {
-                            if (CFStringGetCString(product_version_cfstr, buffer, 256, kCFStringEncodingUTF8))
-                                product_version_str = buffer;
-                        }
-                    }
-                }
-            }
+        @autoreleasepool {
+            NSDictionary *version_info = [NSDictionary dictionaryWithContentsOfFile:
+                                          @"/System/Library/CoreServices/SystemVersion.plist"];
+            NSString *version_value = [version_info objectForKey:@"ProductVersion"];
+            const char *version_str = [version_value UTF8String];
+            if (version_str)
+                Args::StringToVersion(version_str, g_major, g_minor, g_update);
         }
-        if (product_version_str)
-            Args::StringToVersion(product_version_str, g_major, g_minor, g_update);
     }
     
     if (g_major != 0)
@@ -1546,7 +1507,7 @@ Host::LaunchProcess (ProcessLaunchInfo &launch_info)
     
     if (launch_info.GetFlags().Test (eLaunchFlagLaunchInTTY))
     {
-#if !defined(__arm__) && !defined(__arm64__)
+#if !defined(__arm__) && !defined(__arm64__) && !defined(__aarch64__)
         return LaunchInNewTerminalWithAppleScript (exe_path, launch_info);
 #else
         error.SetErrorString ("launching a process in a new terminal is not supported on iOS devices");
