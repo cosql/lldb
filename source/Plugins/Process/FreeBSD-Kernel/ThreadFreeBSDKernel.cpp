@@ -90,7 +90,6 @@ ThreadFreeBSDKernel::CreateRegisterContextForFrame (StackFrame *frame)
     uint32_t concrete_frame_idx = 0;
 
     if (frame) {
-        printf ("frame is not null\n");
         concrete_frame_idx = frame->GetConcreteFrameIndex ();
     }
     const ArchSpec &target_arch = GetProcess()->GetTarget().GetArchitecture();
@@ -100,7 +99,7 @@ ThreadFreeBSDKernel::CreateRegisterContextForFrame (StackFrame *frame)
         ProcessSP process_sp (CalculateProcess());
         ProcessFreeBSDKernel * process =
                 static_cast<ProcessFreeBSDKernel *>(process_sp.get());
-         if (process)
+        if (process)
         {
             switch (process->GetTarget().GetArchitecture().GetMachine())
             {

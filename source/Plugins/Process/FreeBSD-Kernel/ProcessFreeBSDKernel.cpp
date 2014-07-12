@@ -43,6 +43,7 @@ using namespace lldb;
 using namespace lldb_private;
 
 namespace {
+    // http://svnweb.freebsd.org/base/head/sys/sys/proc.h
     enum {
         TDS_INACTIVE = 0x0,
         TDS_INHIBITED,
@@ -65,18 +66,18 @@ namespace {
         static ConstString
         GetSettingName ()
         {
-            return ProcessFreeBSDKernel::GetPluginNameStatic();
+            return ProcessFreeBSDKernel::GetPluginNameStatic ();
         }
 
-        PluginProperties() :
+        PluginProperties () :
             Properties ()
         {
-            m_collection_sp.reset (new OptionValueProperties(GetSettingName()));
-            m_collection_sp->Initialize(g_properties);
+            m_collection_sp.reset (new OptionValueProperties (GetSettingName ()));
+            m_collection_sp->Initialize (g_properties);
         }
 
         virtual
-        ~PluginProperties()
+        ~PluginProperties ()
         {
         }
     };
@@ -84,7 +85,7 @@ namespace {
     typedef std::shared_ptr<PluginProperties> ProcessFreeBSDKernelPropertiesSP;
 
     static const ProcessFreeBSDKernelPropertiesSP &
-    GetGlobalPluginProperties()
+    GetGlobalPluginProperties ()
     {
         static ProcessFreeBSDKernelPropertiesSP g_settings_sp;
         if (!g_settings_sp)
@@ -116,8 +117,8 @@ ProcessFreeBSDKernel::Terminate()
 
 lldb::ProcessSP
 ProcessFreeBSDKernel::CreateInstance (Target &target,
-                            Listener &listener,
-                            const FileSpec *crash_file_path)
+                                      Listener &listener,
+                                      const FileSpec *crash_file_path)
 {
     lldb::ProcessSP process_sp;
     // Check if the target is potentially a FreeBSD kernel image
@@ -307,32 +308,32 @@ ProcessFreeBSDKernel::DidAttach ()
         log->Printf ("ProcessFreeBSDKernel::DidAttach()");
     if (GetID() != LLDB_INVALID_PROCESS_ID)
     {
-        // TODO: figure out the register context that we will use
+        // XXX default to dumping thread
     }
 }
 
 addr_t
 ProcessFreeBSDKernel::GetImageInfoAddress()
 {
-    Target *target = &GetTarget();
-    ObjectFile *obj_file = target->GetExecutableModule()->GetObjectFile();
-    Address addr = obj_file->GetImageInfoAddress(target);
+    Target *target = &GetTarget ();
+    ObjectFile *obj_file = target->GetExecutableModule ()->GetObjectFile ();
+    Address addr = obj_file->GetImageInfoAddress (target);
 
-    if (addr.IsValid())
-        return addr.GetLoadAddress(target);
+    if (addr.IsValid ())
+        return addr.GetLoadAddress (target);
     return LLDB_INVALID_ADDRESS;
 }
 
 lldb_private::DynamicLoader *
 ProcessFreeBSDKernel::GetDynamicLoader ()
 {
-    return m_dyld_ap.get();
+    return m_dyld_ap.get ();
 }
 
 Error
 ProcessFreeBSDKernel::WillResume ()
 {
-    return Error();
+    return Error ();
 }
 
 Error
@@ -408,7 +409,7 @@ ProcessFreeBSDKernel::DoDestroy ()
 bool
 ProcessFreeBSDKernel::IsAlive ()
 {
-    return (m_kvm  != nullptr);
+    return (m_kvm != nullptr);
 }
 
 //------------------------------------------------------------------
@@ -485,7 +486,7 @@ Error
 ProcessFreeBSDKernel::DisableWatchpoint (Watchpoint *wp, bool notify)
 {
     Error error;
-    error.SetErrorString ("watchpoints are not suppported in freebsd kernel debugging");
+    error.SetErrorString ("watchpoints are not suppported in FreeBSD kernel debugging");
     return error;
 }
 
@@ -503,7 +504,7 @@ Error
 ProcessFreeBSDKernel::DoSignal (int signo)
 {
     Error error;
-    error.SetErrorString ("sending signals is not suppported in kdp remote debugging");
+    error.SetErrorString ("sending signals is not suppported in FreeBSD kernel debugging");
     return error;
 }
 
