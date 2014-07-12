@@ -17,6 +17,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 // C++ Includes
 
@@ -34,8 +37,25 @@
 #include "Plugins/Process/gdb-remote/GDBRemoteCommunicationServer.h"
 #include "Plugins/Process/gdb-remote/ProcessGDBRemoteLog.h"
 
+#ifndef LLGS_PROGRAM_NAME
+#define LLGS_PROGRAM_NAME "lldb-gdbserver"
+#endif
+
+#ifndef LLGS_VERSION_STR
+#define LLGS_VERSION_STR "local_build"
+#endif
+
 using namespace lldb;
 using namespace lldb_private;
+
+// lldb-gdbserver state
+
+namespace
+{
+    static lldb::tid_t s_listen_thread = LLDB_INVALID_HOST_THREAD;
+    static std::unique_ptr<ConnectionFileDescriptor> s_listen_connection_up;
+    static std::string s_listen_url;
+}
 
 //----------------------------------------------------------------------
 // option descriptors for getopt_long_only()
@@ -53,6 +73,8 @@ static struct option g_long_options[] =
     { "log-file",           required_argument,  NULL,               'l' },
     { "log-flags",          required_argument,  NULL,               'f' },
     { "attach",             required_argument,  NULL,               'a' },
+    { "named-pipe",         required_argument,  NULL,               'P' },
+    { "setsid",             no_argument,        NULL,               'S' },  // Call setsid() to make llgs run in its own session.
     { NULL,                 0,                  NULL,               0   }
 };
 
@@ -254,81 +276,164 @@ handle_launch (GDBRemoteCommunicationServer &gdb_server, int argc, const char *c
     }
 }
 
+static lldb::thread_result_t
+ListenThread (lldb::thread_arg_t /* arg */)
+{
+    Error error;
+
+    if (s_listen_connection_up)
+    {
+        // Do the listen on another thread so we can continue on...
+        if (s_listen_connection_up->Connect(s_listen_url.c_str(), &error) != eConnectionStatusSuccess)
+            s_listen_connection_up.reset();
+    }
+    return nullptr;
+}
+
+static Error
+StartListenThread (const char *hostname, uint16_t port)
+{
+    Error error;
+    if (IS_VALID_LLDB_HOST_THREAD(s_listen_thread))
+    {
+        error.SetErrorString("listen thread already running");
+    }
+    else
+    {
+        char listen_url[512];
+        if (hostname && hostname[0])
+            snprintf(listen_url, sizeof(listen_url), "listen://%s:%i", hostname, port);
+        else
+            snprintf(listen_url, sizeof(listen_url), "listen://%i", port);
+
+        s_listen_url = listen_url;
+        s_listen_connection_up.reset (new ConnectionFileDescriptor ());
+        s_listen_thread = Host::ThreadCreate (listen_url, ListenThread, nullptr, &error);
+    }
+    return error;
+}
+
+static bool
+JoinListenThread ()
+{
+    if (IS_VALID_LLDB_HOST_THREAD(s_listen_thread))
+    {
+        Host::ThreadJoin(s_listen_thread, nullptr, nullptr);
+        s_listen_thread = LLDB_INVALID_HOST_THREAD;
+    }
+    return true;
+}
+
 void
-start_listener (GDBRemoteCommunicationServer &gdb_server, const char *const host_and_port, const char *const progname)
+start_listener (GDBRemoteCommunicationServer &gdb_server, const char *const host_and_port, const char *const progname, const char *const named_pipe_path)
 {
     Error error;
 
     if (host_and_port && host_and_port[0])
     {
-        std::unique_ptr<ConnectionFileDescriptor> conn_ap(new ConnectionFileDescriptor());
-        if (conn_ap.get())
+        std::string final_host_and_port;
+        std::string listening_host;
+        std::string listening_port;
+        uint32_t listening_portno = 0;
+
+        // If host_and_port starts with ':', default the host to be "localhost" and expect the remainder to be the port.
+        if (host_and_port[0] == ':')
+            final_host_and_port.append ("localhost");
+        final_host_and_port.append (host_and_port);
+
+        const std::string::size_type colon_pos = final_host_and_port.find (':');
+        if (colon_pos != std::string::npos)
         {
-            std::string final_host_and_port;
-            std::string listening_host;
-            std::string listening_port;
+            listening_host = final_host_and_port.substr (0, colon_pos);
+            listening_port = final_host_and_port.substr (colon_pos + 1);
+            listening_portno = Args::StringToUInt32 (listening_port.c_str (), 0);
+        }
+        else
+        {
+            fprintf (stderr, "failed to parse host and port from connection string '%s'\n", final_host_and_port.c_str ());
+            display_usage (progname);
+            exit (1);
+        }
 
-            // If host_and_port starts with ':', default the host to be "localhost" and expect the remainder to be the port.
-            if (host_and_port[0] == ':')
-                final_host_and_port.append ("localhost");
-            final_host_and_port.append (host_and_port);
+        // Start the listener on a new thread.  We need to do this so we can resolve the
+        // bound listener port.
+        StartListenThread(listening_host.c_str (), static_cast<uint16_t> (listening_portno));
+        printf ("Listening to port %s for a connection from %s...\n", listening_port.c_str (), listening_host.c_str ());
 
-            const std::string::size_type colon_pos = final_host_and_port.find(':');
-            if (colon_pos != std::string::npos)
+        // If we have a named pipe to write the port number back to, do that now.
+        if (named_pipe_path && named_pipe_path[0] && listening_portno == 0)
+        {
+            // FIXME use new generic named pipe support.
+            int fd = ::open(named_pipe_path, O_WRONLY);
+            if (fd > -1)
             {
-                listening_host = final_host_and_port.substr(0, colon_pos);
-                listening_port = final_host_and_port.substr(colon_pos + 1);
-            }
+                const uint16_t bound_port = s_listen_connection_up->GetBoundPort (10);
 
-            std::string connect_url ("listen://");
-            connect_url.append (final_host_and_port);
-
-            printf ("Listening to port %s for a connection from %s...\n", listening_port.c_str (), listening_host.c_str ());
-            if (conn_ap->Connect(connect_url.c_str(), &error) == eConnectionStatusSuccess)
-            {
-                printf ("Connection established.\n");
-                gdb_server.SetConnection (conn_ap.release());
+                char port_str[64];
+                const ssize_t port_str_len = ::snprintf (port_str, sizeof(port_str), "%u", bound_port);
+                // Write the port number as a C string with the NULL terminator.
+                ::write (fd, port_str, port_str_len + 1);
+                close (fd);
             }
             else
             {
-                fprintf (stderr, "failed to connect to '%s': %s\n", final_host_and_port.c_str (), error.AsCString ());
-                display_usage (progname);
-                exit (1);
+                fprintf (stderr, "failed to open named pipe '%s' for writing\n", named_pipe_path);
             }
         }
 
-        if (gdb_server.IsConnected())
+        // Join the listener thread.
+        if (!JoinListenThread ())
         {
-            // After we connected, we need to get an initial ack from...
-            if (gdb_server.HandshakeWithClient(&error))
+            fprintf (stderr, "failed to join the listener thread\n");
+            display_usage (progname);
+            exit (1);
+        }
+
+        // Ensure we connected.
+        if (s_listen_connection_up)
+        {
+            printf ("Connection established.\n");
+            gdb_server.SetConnection (s_listen_connection_up.release());
+        }
+        else
+        {
+            fprintf (stderr, "failed to connect to '%s': %s\n", final_host_and_port.c_str (), error.AsCString ());
+            display_usage (progname);
+            exit (1);
+        }
+    }
+
+    if (gdb_server.IsConnected())
+    {
+        // After we connected, we need to get an initial ack from...
+        if (gdb_server.HandshakeWithClient(&error))
+        {
+            // We'll use a half a second timeout interval so that an exit conditions can
+            // be checked that often.
+            const uint32_t TIMEOUT_USEC = 500000;
+
+            bool interrupt = false;
+            bool done = false;
+            while (!interrupt && !done && (g_sighup_received_count < 1))
             {
-                // We'll use a half a second timeout interval so that an exit conditions can
-                // be checked that often.
-                const uint32_t TIMEOUT_USEC = 500000;
-
-                bool interrupt = false;
-                bool done = false;
-                while (!interrupt && !done && (g_sighup_received_count < 1))
+                const GDBRemoteCommunication::PacketResult result = gdb_server.GetPacketAndSendResponse (TIMEOUT_USEC, error, interrupt, done);
+                if ((result != GDBRemoteCommunication::PacketResult::Success) &&
+                    (result != GDBRemoteCommunication::PacketResult::ErrorReplyTimeout))
                 {
-                    const GDBRemoteCommunication::PacketResult result = gdb_server.GetPacketAndSendResponse (TIMEOUT_USEC, error, interrupt, done);
-                    if ((result != GDBRemoteCommunication::PacketResult::Success) &&
-                        (result != GDBRemoteCommunication::PacketResult::ErrorReplyTimeout))
-                    {
-                        // We're bailing out - we only support successful handling and timeouts.
-                        fprintf(stderr, "leaving packet loop due to PacketResult %d\n", result);
-                        break;
-                    }
-                }
-
-                if (error.Fail())
-                {
-                    fprintf(stderr, "error: %s\n", error.AsCString());
+                    // We're bailing out - we only support successful handling and timeouts.
+                    fprintf(stderr, "leaving packet loop due to PacketResult %d\n", result);
+                    break;
                 }
             }
-            else
+
+            if (error.Fail())
             {
-                fprintf(stderr, "error: handshake with client failed\n");
+                fprintf(stderr, "error: %s\n", error.AsCString());
             }
+        }
+        else
+        {
+            fprintf(stderr, "error: handshake with client failed\n");
         }
     }
     else
@@ -357,6 +462,7 @@ main (int argc, char *argv[])
     int ch;
     std::string platform_name;
     std::string attach_target;
+    std::string named_pipe_path;
 
     initialize_lldb_gdbserver ();
 
@@ -433,6 +539,35 @@ main (int argc, char *argv[])
                 platform_name = optarg;
             break;
 
+        case 'P': // named pipe
+            if (optarg && optarg[0])
+                named_pipe_path = optarg;
+            break;
+
+#ifndef _WIN32
+        case 'S':
+            // Put llgs into a new session. Terminals group processes
+            // into sessions and when a special terminal key sequences
+            // (like control+c) are typed they can cause signals to go out to
+            // all processes in a session. Using this --setsid (-S) option
+            // will cause debugserver to run in its own sessions and be free
+            // from such issues.
+            //
+            // This is useful when llgs is spawned from a command
+            // line application that uses llgs to do the debugging,
+            // yet that application doesn't want llgs receiving the
+            // signals sent to the session (i.e. dying when anyone hits ^C).
+            {
+                const ::pid_t new_sid = setsid();
+                if (new_sid == -1)
+                {
+                    const char *errno_str = strerror(errno);
+                    fprintf (stderr, "failed to set new session id for %s (%s)\n", LLGS_PROGRAM_NAME, errno_str ? errno_str : "<no error string>");
+                }
+            }
+            break;
+#endif
+
         case 'a': // attach {pid|process_name}
             if (optarg && optarg[0])
                 attach_target = optarg;
@@ -490,7 +625,10 @@ main (int argc, char *argv[])
     else if (argc > 0)
         handle_launch (gdb_server, argc, argv);
 
-    start_listener (gdb_server, host_and_port, progname);
+    // Print version info.
+    printf("%s-%s", LLGS_PROGRAM_NAME, LLGS_VERSION_STR);
+
+    start_listener (gdb_server, host_and_port, progname, named_pipe_path.c_str ());
 
     terminate_lldb_gdbserver ();
 
