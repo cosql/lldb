@@ -62,6 +62,7 @@ set( LLDB_USED_LIBS
   lldbPluginProcessUtility
   lldbPluginPlatformGDB
   lldbPluginPlatformFreeBSD
+  lldbPluginPlatformKalimba
   lldbPluginPlatformLinux
   lldbPluginPlatformPOSIX
   lldbPluginPlatformWindows
@@ -156,7 +157,7 @@ set( CLANG_USED_LIBS
   clangFrontend
   clangLex
   clangParse
-  clangRewriteCore
+  clangRewrite
   clangRewriteFrontend
   clangSema
   clangSerialization
