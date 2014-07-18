@@ -187,6 +187,7 @@ ProcessFreeBSDKernel::ProcessFreeBSDKernel(Target& target, Listener &listener,
     m_kernel_image_file_name (target.GetExecutableModule()->GetFileSpec().GetPath().c_str()),
     m_core_file (crash_file_path),
     m_kernel_load_addr (LLDB_INVALID_ADDRESS),
+    m_stoppcbs(0),
     m_kvm(nullptr)
 {
 }
