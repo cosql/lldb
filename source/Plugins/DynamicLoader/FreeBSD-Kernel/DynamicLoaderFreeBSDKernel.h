@@ -92,6 +92,7 @@ private:
     int
     check_kld_path (std::string path);
 
+    int find_kld_path (std::string filename, std::string path);
     DISALLOW_COPY_AND_ASSIGN(DynamicLoaderFreeBSDKernel);
 };
 
