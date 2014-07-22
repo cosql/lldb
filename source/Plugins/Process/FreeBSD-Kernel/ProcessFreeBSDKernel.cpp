@@ -38,6 +38,8 @@
 #include "ThreadFreeBSDKernel.h"
 #include "ProcessPOSIXLog.h"
 #include "Utility/StringExtractor.h"
+#include "Plugins/DynamicLoader/Darwin-Kernel/DynamicLoaderDarwinKernel.h"
+#include "Plugins/DynamicLoader/Static/DynamicLoaderStatic.h"
 
 using namespace lldb;
 using namespace lldb_private;
