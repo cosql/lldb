@@ -486,9 +486,12 @@ Target::CreateFuncRegexBreakpoint (const FileSpecList *containingModules,
                                    bool hardware)
 {
     SearchFilterSP filter_sp(GetSearchFilterForModuleAndCUList (containingModules, containingSourceFiles));
+    bool skip =
+      (skip_prologue == eLazyBoolCalculate) ? GetSkipPrologue()
+                                            : static_cast<bool>(skip_prologue);
     BreakpointResolverSP resolver_sp(new BreakpointResolverName (NULL, 
                                                                  func_regex, 
-                                                                 skip_prologue == eLazyBoolCalculate ? GetSkipPrologue() : skip_prologue));
+                                                                 skip));
 
     return CreateBreakpoint (filter_sp, resolver_sp, internal, hardware, true);
 }
@@ -2368,7 +2371,8 @@ Target::Launch (Listener &listener, ProcessLaunchInfo &launch_info)
     
     if (!launch_info.GetArchitecture().IsValid())
         launch_info.GetArchitecture() = GetArchitecture();
-    
+
+    // If we're not already connected to the process, and if we have a platform that can launch a process for debugging, go ahead and do that here.
     if (state != eStateConnected && platform_sp && platform_sp->CanDebugProcess ())
     {
         m_process_sp = GetPlatform()->DebugProcess (launch_info,
@@ -2385,10 +2389,12 @@ Target::Launch (Listener &listener, ProcessLaunchInfo &launch_info)
         }
         else
         {
+            // Use a Process plugin to construct the process.
             const char *plugin_name = launch_info.GetProcessPluginName();
             CreateProcess (listener, plugin_name, NULL);
         }
-        
+
+        // Since we didn't have a platform launch the process, launch it here.
         if (m_process_sp)
             error = m_process_sp->Launch (launch_info);
     }
