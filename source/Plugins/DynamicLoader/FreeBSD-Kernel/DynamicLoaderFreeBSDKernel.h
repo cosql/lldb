@@ -81,18 +81,21 @@ public:
 
     lldb::addr_t ComputeLoadOffset();
 protected:
-    lldb::addr_t m_kernel_load_address, m_linker_files_addr, m_kernel_file_addr;
+    lldb::addr_t m_kernel_load_addr, m_linker_files_addr, m_kernel_file_addr;
     lldb::addr_t m_address_offset, m_filename_offset;
     lldb::addr_t m_next_offset, m_pathname_offset;
-    std::string module_paths;
+    std::string m_module_path;
 private:
-    int
-    kld_ok (std::string path);
+    bool
+    IsKLDOK (std::string path);
 
-    int
-    check_kld_path (std::string path);
+    bool
+    CheckKLDPath (std::string path);
 
-    int find_kld_path (std::string filename, std::string path);
+    bool FindKLDPath (std::string filename, std::string& path);
+
+    // int find_kld_address(std::string kld_name, lldb::addr_t& kld_addr);
+
     DISALLOW_COPY_AND_ASSIGN(DynamicLoaderFreeBSDKernel);
 };
 
