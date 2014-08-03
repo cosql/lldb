@@ -3063,7 +3063,11 @@ Process::CompleteAttach ()
 {
     // Let the process subclass figure out at much as it can about the process
     // before we go looking for a dynamic loader plug-in.
-    DidAttach();
+    ArchSpec process_arch;
+    DidAttach(process_arch);
+    
+    if (process_arch.IsValid())
+        m_target.SetArchitecture(process_arch);
 
     // We just attached.  If we have a platform, ask it for the process architecture, and if it isn't
     // the same as the one we've already set, switch architectures.
@@ -3082,7 +3086,7 @@ Process::CompleteAttach ()
                 m_target.SetArchitecture(platform_arch);
             }
         }
-        else
+        else if (!process_arch.IsValid())
         {
             ProcessInstanceInfo process_info;
             platform_sp->GetProcessInfo (GetID(), process_info);
@@ -3243,6 +3247,7 @@ Process::Halt (bool clear_thread_plans)
     EventSP event_sp;
     Error error (WillHalt());
     
+    bool restored_process_events = false;
     if (error.Success())
     {
         
@@ -3254,6 +3259,10 @@ Process::Halt (bool clear_thread_plans)
         {
             if (m_public_state.GetValue() == eStateAttaching)
             {
+                // Don't hijack and eat the eStateExited as the code that was doing
+                // the attach will be waiting for this event...
+                RestorePrivateProcessEvents();
+                restored_process_events = true;
                 SetExitStatus(SIGKILL, "Cancelled async attach.");
                 Destroy ();
             }
@@ -3302,7 +3311,8 @@ Process::Halt (bool clear_thread_plans)
         }
     }
     // Resume our private state thread before we post the event (if any)
-    RestorePrivateProcessEvents();
+    if (!restored_process_events)
+        RestorePrivateProcessEvents();
 
     // Post any event we might have consumed. If all goes well, we will have
     // stopped the process, intercepted the event and set the interrupted

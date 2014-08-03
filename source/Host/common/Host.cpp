@@ -37,6 +37,9 @@
 #include <mach/mach_init.h>
 #include <mach-o/dyld.h>
 #include <AvailabilityMacros.h>
+#ifndef CPU_SUBTYPE_X86_64_H
+#define CPU_SUBTYPE_X86_64_H ((cpu_subtype_t)8)
+#endif
 #endif
 
 #if defined (__linux__) || defined (__FreeBSD__) || defined (__FreeBSD_kernel__) || defined (__APPLE__) || defined(__NetBSD__)
@@ -72,6 +75,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/Host.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 
 #if defined (__APPLE__)
@@ -375,6 +379,17 @@ Host::GetArchitecture (SystemDefaultArchitecture arch_kind)
                     cpusubtype32 = CPU_SUBTYPE_ARM_V7S;
 #endif
                 g_host_arch_32.SetArchitecture (eArchTypeMachO, cputype & ~(CPU_ARCH_MASK), cpusubtype32);
+                
+                if (cputype == CPU_TYPE_ARM || cputype == CPU_TYPE_ARM64)
+                {
+                    g_host_arch_32.GetTriple().setOS(llvm::Triple::IOS);
+                    g_host_arch_64.GetTriple().setOS(llvm::Triple::IOS);
+                }
+                else
+                {
+                    g_host_arch_32.GetTriple().setOS(llvm::Triple::MacOSX);
+                    g_host_arch_64.GetTriple().setOS(llvm::Triple::MacOSX);
+                }
             }
             else
             {
@@ -825,6 +840,19 @@ Host::SetShortThreadName (lldb::pid_t pid, lldb::tid_t tid,
 #endif
 
 FileSpec
+Host::GetUserProfileFileSpec ()
+{
+    static FileSpec g_profile_filespec;
+    if (!g_profile_filespec)
+    {
+        llvm::SmallString<64> path;
+        llvm::sys::path::home_directory(path);
+        return FileSpec(path.c_str(), false);
+    }
+    return g_profile_filespec;
+}
+
+FileSpec
 Host::GetProgramFileSpec ()
 {
     static FileSpec g_program_filespec;
@@ -864,6 +892,10 @@ Host::GetProgramFileSpec ()
                 g_program_filespec.SetFile(exe_path, false);
             delete[] exe_path;
         }
+#elif defined(_WIN32)
+        std::vector<char> buffer(PATH_MAX);
+        ::GetModuleFileName(NULL, &buffer[0], buffer.size());
+        g_program_filespec.SetFile(&buffer[0], false);
 #endif
     }
     return g_program_filespec;

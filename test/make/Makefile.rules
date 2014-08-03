@@ -64,7 +64,7 @@ ARCHFLAG ?= -arch
 # Change any build/tool options needed
 #----------------------------------------------------------------------
 ifeq "$(OS)" "Darwin"
-	DS := dsymutil
+	DS := $(shell xcrun -find -toolchain default dsymutil)
 	DSFLAGS =
 	DSYM = $(EXE).dSYM
 	AR := libtool
@@ -73,15 +73,22 @@ else
 	# On non-Apple platforms, -arch becomes -m
 	ARCHFLAG := -m
 
-	# i386 becomes 32, and amd64 or x86_64 becomes 64
+	# i386,i686 -> 32
+	# amd64, x86_64, x64 -> 64
 	ifeq "$(ARCH)" "amd64"
-	    override ARCH := $(subst amd64,64,$(ARCH))
+		override ARCH := $(subst amd64,64,$(ARCH))
 	endif
 	ifeq "$(ARCH)" "x86_64"
-	    override ARCH := $(subst x86_64,64,$(ARCH))
+		override ARCH := $(subst x86_64,64,$(ARCH))
+	endif
+	ifeq "$(ARCH)" "x64"
+		override ARCH := $(subst x64,64,$(ARCH))
 	endif
 	ifeq "$(ARCH)" "i386"
-	    override ARCH := $(subst i386,32,$(ARCH))
+		override ARCH := $(subst i386,32,$(ARCH))
+	endif
+	ifeq "$(ARCH)" "i686"
+		override ARCH := $(subst i686,32,$(ARCH))
 	endif
 
 	ifeq "$(SPLIT_DEBUG_SYMBOLS)" "YES"
@@ -367,7 +374,7 @@ dsym:	$(DSYM)
 all:	$(EXE) $(DSYM)
 clean::
 	$(RM) "$(EXE)" $(OBJECTS) $(PREREQS) $(ARCHIVE_NAME) $(ARCHIVE_OBJECTS)
-	$(RM) -r *.d.[0-9] *.d.[0-9][0-9] *.d.[0-9][0-9][0-9] *.d.[0-9][0-9][0-9][0-9] *.d.[0-9][0-9][0-9][0-9][0-9]
+	$(RM) -r $(wildcard *.d.[0-9] *.d.[0-9][0-9] *.d.[0-9][0-9][0-9] *.d.[0-9][0-9][0-9][0-9] *.d.[0-9][0-9][0-9][0-9][0-9])
 ifneq "$(DYLIB_NAME)" ""
 	$(RM) -r $(DYLIB_FILENAME).dSYM
 	$(RM) $(DYLIB_OBJECTS) $(DYLIB_PREREQS) $(DYLIB_FILENAME) $(DYLIB_FILENAME).debug
