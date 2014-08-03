@@ -8,9 +8,15 @@
 //===----------------------------------------------------------------------===//
 
 // C Includes
+#include <libgen.h>
+#include <string.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/linker.h>
 #include <sys/stat.h>
 // C++ Includes
+#include <iostream>
+#include <sstream>
 // Other libraries and framework includes
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Core/Log.h"
@@ -30,12 +36,8 @@ using namespace lldb;
 using namespace lldb_private;
 
 namespace {
-    static const char *kld_suffixes[] = {
-        ".debug",
-        ".symbols",
-        "",
-        NULL
-    };
+    std::vector<std::string> kld_suffixes = { ".debug", ".symbols", ""};
+    // http://svnweb.freebsd.org/base/head/sys/sys/linker.h
 };
 
 void
@@ -92,7 +94,7 @@ DynamicLoaderFreeBSDKernel::CreateInstance(Process *process, bool force)
         if (triple_ref.getOS() == llvm::Triple::FreeBSD)
             create = true;
     }
-    
+
     if (create)
         return new DynamicLoaderFreeBSDKernel (process);
     return NULL;
@@ -100,7 +102,7 @@ DynamicLoaderFreeBSDKernel::CreateInstance(Process *process, bool force)
 
 DynamicLoaderFreeBSDKernel::DynamicLoaderFreeBSDKernel(Process *process)
     : DynamicLoader(process),
-      m_kernel_load_address(LLDB_INVALID_ADDRESS)
+      m_kernel_load_addr(LLDB_INVALID_ADDRESS)
 {
 }
 
@@ -172,60 +174,91 @@ DynamicLoaderFreeBSDKernel::ComputeLoadOffset()
     return 0;
 }
 
-int
-DynamicLoaderFreeBSDKernel::check_kld_path (std::string path)
+bool
+DynamicLoaderFreeBSDKernel::CheckKLDPath (std::string path)
 {
-    const char **suffix;
-
-    suffix = kld_suffixes;
-    while (*suffix != NULL) {
+    for (std::vector<std::string>::iterator suffix = kld_suffixes.begin();
+         suffix != kld_suffixes.end(); suffix++) {
         std::string kld_path = path + *suffix;
-        if (kld_ok(path))
-            return (1);
+        if (IsKLDOK(kld_path))
+            return true;
         suffix++;
     }
-    return (0);
+    return false;
 }
 
-int
-DynamicLoaderFreeBSDKernel::kld_ok (std::string path)
+bool
+DynamicLoaderFreeBSDKernel::IsKLDOK (std::string path)
 {
     struct stat sb;
 
     if (stat(path.c_str(), &sb) == 0 && S_ISREG(sb.st_mode))
-        return (1);
-    return (0);
+        return true;
+    return false;
 }
 
-int
-DynamicLoaderFreeBSDKernel::find_kld_path (std::string filename, std::string path)
+bool
+DynamicLoaderFreeBSDKernel::FindKLDPath (std::string filename, std::string& path)
 {
-    char *module_path;
-    char *kernel_dir, *module_dir, *cp;
-    int error;
-
-    // if (exec_bfd) {
-    //     kernel_dir = dirname(bfd_get_filename(exec_bfd));
-    //     if (kernel_dir != NULL) {
-    //         snprintf(path, path_size, "%s/%s", kernel_dir,
-    //                  filename);
-    //         if (check_kld_path(path, path_size))
-    //             return (1);
-    //     }
-    // }
-    // if (module_path_addr != 0) {
-    //     target_read_string(module_path_addr, &module_path, PATH_MAX,
-    //                        &error);
-    //     if (error == 0) {
-    //         make_cleanup(xfree, module_path);
-    //         cp = module_path;
-    //         while ((module_dir = strsep(&cp, ";")) != NULL) {
-    //             snprintf(path, path_size, "%s/%s", module_dir,
-    //                      filename);
-    //             if (check_kld_path(path, path_size))
-    //                 return (1);
-    //         }
-    //     }
-    // }
-    return (0);
+    char *kernel_dir;
+    ModuleSP executable = GetTargetExecutable();
+    if (executable) {
+        kernel_dir = dirname(executable->GetSpecificationDescription().c_str());
+           if (kernel_dir != NULL) {
+               path = std::string(kernel_dir) + "/" + filename;
+            if (CheckKLDPath(path))
+                return true;
+        }
+    }
+    if (!m_module_path.empty()) {
+        std::stringstream ss(m_module_path);
+        std::string module_dir;
+        while (std::getline(ss, module_dir, ';')) {
+             path = module_dir + "/" + filename;
+             if (CheckKLDPath(path))
+                 return true;
+        }
+    }
+    return false;
 }
+
+// int
+// DynamicLoaderFreeBSDKernel::FindKLDAddress(std::string kld_name,
+//                                              addr_t& kld_addr)
+// {
+//     addr_t kld;
+//     char *kld_filename;
+//     char *filename;
+//     int error;
+
+//     if (m_linker_files_addr == 0 || address_offset == 0 ||
+//         filename_offset == 0 || next_offset == 0)
+//         return 0;
+
+//     filename = basename(kld_name.c_str());
+//     for (kld = read_pointer(m_linker_files_addr); kld != 0;
+//          kld = read_pointer(kld + off_next)) {
+//         /* Try to read this linker file's filename. */
+//         target_read_string(read_pointer(kld + off_filename),
+//                            &kld_filename, PATH_MAX, &error);
+//         if (error)
+//             continue;
+
+//         /* Compare this kld's filename against our passed in name. */
+//         if (strcmp(kld_filename, filename) != 0) {
+//             xfree(kld_filename);
+//             continue;
+//         }
+//         xfree(kld_filename);
+
+//         /*
+//          * We found a match, use its address as the base
+//          * address if we can read it.
+//          */
+//         *address = read_pointer(kld + off_address);
+//         if (*address == 0)
+//             return 0;
+//         return 1;
+//     }
+//     return 0;
+// }
