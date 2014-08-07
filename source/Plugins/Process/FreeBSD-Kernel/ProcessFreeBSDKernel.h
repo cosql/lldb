@@ -198,7 +198,7 @@ public:
     LookUpSymbolAddressInModule(lldb::ModuleSP  module,
                                 const char *sym_name);
 
-    kvm_t * 
+    kvm_t *
     GetKVM() {return m_kvm;}
 protected:
 

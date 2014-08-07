@@ -332,7 +332,7 @@ ProcessFreeBSDKernel::GetDynamicLoader ()
 {
     if (m_dyld_ap.get() == nullptr)
         m_dyld_ap.reset (DynamicLoader::FindPlugin(this, DynamicLoaderFreeBSDKernel::GetPluginNameStatic().GetCString()));
-        
+
      return m_dyld_ap.get ();
 }
 
