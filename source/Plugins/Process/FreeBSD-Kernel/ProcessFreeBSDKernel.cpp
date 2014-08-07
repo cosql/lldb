@@ -38,7 +38,7 @@
 #include "ThreadFreeBSDKernel.h"
 #include "ProcessPOSIXLog.h"
 #include "Utility/StringExtractor.h"
-#include "Plugins/DynamicLoader/Darwin-Kernel/DynamicLoaderDarwinKernel.h"
+#include "Plugins/DynamicLoader/FreeBSD-Kernel/DynamicLoaderFreeBSDKernel.h"
 #include "Plugins/DynamicLoader/Static/DynamicLoaderStatic.h"
 
 using namespace lldb;
@@ -189,8 +189,8 @@ ProcessFreeBSDKernel::ProcessFreeBSDKernel(Target& target, Listener &listener,
     m_kernel_image_file_name (target.GetExecutableModule()->GetFileSpec().GetPath().c_str()),
     m_core_file (crash_file_path),
     m_kernel_load_addr (LLDB_INVALID_ADDRESS),
-    m_stoppcbs(0),
-    m_kvm(nullptr)
+    m_stoppcbs (LLDB_INVALID_ADDRESS),
+    m_kvm (nullptr)
 {
 }
 
@@ -304,7 +304,7 @@ ProcessFreeBSDKernel::DoAttachToProcessWithName (const char *process_name, const
 
 
 void
-ProcessFreeBSDKernel::DidAttach ()
+ProcessFreeBSDKernel::DidAttach (ArchSpec &process_arch)
 {
     Log *log (ProcessPOSIXLog::GetLogIfAllCategoriesSet (POSIX_LOG_PROCESS));
     if (log)
@@ -330,7 +330,10 @@ ProcessFreeBSDKernel::GetImageInfoAddress()
 lldb_private::DynamicLoader *
 ProcessFreeBSDKernel::GetDynamicLoader ()
 {
-    return m_dyld_ap.get ();
+    if (m_dyld_ap.get() == nullptr)
+        m_dyld_ap.reset (DynamicLoader::FindPlugin(this, DynamicLoaderFreeBSDKernel::GetPluginNameStatic().GetCString()));
+        
+     return m_dyld_ap.get ();
 }
 
 Error
@@ -571,7 +574,7 @@ lldb::addr_t ProcessFreeBSDKernel::LookUpSymbolAddressInModule(lldb::ModuleSP mo
             }
         }
     }
-    return 0;
+    return LLDB_INVALID_ADDRESS;
 }
 
 bool ProcessFreeBSDKernel::InitializeThreads()
@@ -580,16 +583,16 @@ bool ProcessFreeBSDKernel::InitializeThreads()
     lldb::addr_t addr, paddr;
 
     addr = LookUpSymbolAddressInModule(module, "allproc");
-    if (addr == 0)
+    if (addr == LLDB_INVALID_ADDRESS)
         return false;
     kvm_read(m_kvm, addr, &paddr, sizeof(paddr));
 
     m_dumppcb = LookUpSymbolAddressInModule(module, "dumppcb");
-    if (m_dumppcb == 0)
+    if (m_dumppcb == LLDB_INVALID_ADDRESS)
         return false;
 
     addr = LookUpSymbolAddressInModule(module, "dumptid");
-    if (addr == 0)
+    if (addr == LLDB_INVALID_ADDRESS)
         m_dumptid = -1;
     else
         kvm_read(m_kvm, addr, &m_dumptid, sizeof(m_dumptid));
@@ -603,7 +606,7 @@ bool ProcessFreeBSDKernel::InitializeThreads()
 
     AddProcs(paddr);
     addr = LookUpSymbolAddressInModule(module, "zombproc");
-    if (addr != 0)
+    if (addr != LLDB_INVALID_ADDRESS)
     {
         kvm_read(m_kvm, addr, &paddr, sizeof(paddr));
         AddProcs(paddr);
@@ -665,11 +668,11 @@ ProcessFreeBSDKernel::AddProcs(uintptr_t paddr)
 addr_t ProcessFreeBSDKernel::FindCorePCB(uint32_t cpuid)
 {
     ModuleSP module = GetTarget().GetExecutableModule();
-    if (m_stoppcbs == 0) {
+    if (m_stoppcbs == LLDB_INVALID_ADDRESS) {
         m_stoppcbs = LookUpSymbolAddressInModule(module, "stoppcbs");
     }
 
-    if (m_stoppcbs == 0)
+    if (m_stoppcbs == LLDB_INVALID_ADDRESS)
         return 0;
 
     return m_stoppcbs + cpuid * pcb_size;

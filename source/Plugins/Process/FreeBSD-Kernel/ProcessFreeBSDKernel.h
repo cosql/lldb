@@ -111,7 +111,7 @@ public:
     DoAttachToProcessWithName (const char *process_name, const lldb_private::ProcessAttachInfo &attach_info);
 
     virtual void
-    DidAttach ();
+    DidAttach (lldb_private::ArchSpec &process_arch);
 
     lldb::addr_t
     GetImageInfoAddress();
@@ -197,6 +197,9 @@ public:
     lldb::addr_t
     LookUpSymbolAddressInModule(lldb::ModuleSP  module,
                                 const char *sym_name);
+
+    kvm_t * 
+    GetKVM() {return m_kvm;}
 protected:
 
     //----------------------------------------------------------------------
@@ -239,6 +242,7 @@ protected:
     ThreadFreeBSDKernel *
     CreateNewThreadFreeBSDKernel(lldb_private::Process &process,
                                  lldb::tid_t tid);
+
     private:
     //------------------------------------------------------------------
     // For ProcessFreeBSDKernel only
