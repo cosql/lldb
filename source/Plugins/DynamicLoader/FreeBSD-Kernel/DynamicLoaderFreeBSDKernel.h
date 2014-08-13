@@ -15,6 +15,7 @@
 // Other libraries and framework includes
 #include "lldb/Breakpoint/StoppointCallbackContext.h"
 #include "lldb/Target/DynamicLoader.h"
+#include "Plugins/Process/FreeBSD-Kernel/ProcessFreeBSDKernel.h"
 
 class DynamicLoaderFreeBSDKernel : public lldb_private::DynamicLoader
 {
@@ -79,12 +80,13 @@ public:
 
     void LoadAllCurrentModules();
 
-    lldb::addr_t ComputeLoadOffset();
+    size_t ReadMemory(lldb::addr_t addr, void *buf, size_t size, lldb_private::Error &error);
 protected:
     lldb::addr_t m_kernel_load_addr, m_linker_files_addr, m_kernel_file_addr;
     lldb::addr_t m_address_offset, m_filename_offset;
     lldb::addr_t m_next_offset, m_pathname_offset;
-    std::string m_module_path;
+    std::vector<std::string> m_module_paths;
+    ProcessFreeBSDKernel* m_kernel_process;
 private:
     bool
     IsKLDOK (std::string path);
@@ -94,7 +96,9 @@ private:
 
     bool FindKLDPath (std::string filename, std::string& path);
 
-    // int find_kld_address(std::string kld_name, lldb::addr_t& kld_addr);
+    bool FindKLDAddress(std::string kld_name, lldb::addr_t& kld_addr);
+
+    void InitLoadSpecs();
 
     DISALLOW_COPY_AND_ASSIGN(DynamicLoaderFreeBSDKernel);
 };

@@ -83,6 +83,7 @@
 #endif
 
 #if defined (__FreeBSD__)
+#include "Plugins/DynamicLoader/FreeBSD-Kernel/DynamicLoaderFreeBSDKernel.h"
 #include "Plugins/Process/POSIX/ProcessPOSIX.h"
 #include "Plugins/Process/FreeBSD-Kernel/ProcessFreeBSDKernel.h"
 #include "Plugins/Process/FreeBSD/ProcessFreeBSD.h"
@@ -168,6 +169,7 @@ lldb_private::Initialize ()
         ProcessWindows::Initialize();
 #endif
 #if defined (__FreeBSD__)
+        DynamicLoaderFreeBSDKernel::Initialize();
         ProcessFreeBSD::Initialize();
         ProcessFreeBSDKernel::Initialize();
 #endif
@@ -254,6 +256,7 @@ lldb_private::Terminate ()
 #endif
 
 #if defined (__FreeBSD__)
+    DynamicLoaderFreeBSDKernel::Terminate();
     ProcessFreeBSD::Terminate();
     ProcessFreeBSDKernel::Terminate();
 #endif
