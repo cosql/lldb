@@ -19,9 +19,6 @@
 // Copyright:	None.
 //--
 
-// Include compiler configuration
-#include "MICmnConfig.h"
-
 #if defined( __FreeBSD__ ) || defined( __linux__ )
 
 // In-house headers:
