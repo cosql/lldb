@@ -183,8 +183,9 @@ DynamicLoaderFreeBSDKernel::LoadAllCurrentModules()
         if (FindKLDPath(kld_filename, path)) {
             addr_t kld_addr = ReadPointer (kaddr + m_address_offset);
             FileSpec file_spec (path.c_str(), true);
-            ConstString objfile (path.c_str());
-            ModuleSP module_sp(new Module(file_spec, arch_spec, &objfile, kld_addr));
+            // ConstString objfile (path.c_str());
+            ModuleSpec module_spec(file_spec, arch_spec);
+            ModuleSP module_sp(new Module(module_spec));
             module_list.AppendIfNeeded(module_sp);
         }
     }
