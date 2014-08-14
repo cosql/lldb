@@ -115,13 +115,11 @@ void
 DynamicLoaderFreeBSDKernel::DidAttach()
 {
      LoadAllCurrentModules();
-    // printf ("load %s\n", FindKLDAddress("dick.ko", addr) ? "succeeded" : "failed");
 }
 
 void
 DynamicLoaderFreeBSDKernel::DidLaunch()
 {
-    printf ("function called %s %s\n", __FILE__, __FUNCTION__);
     ModuleSP executable;
 
     executable = GetTargetExecutable();
