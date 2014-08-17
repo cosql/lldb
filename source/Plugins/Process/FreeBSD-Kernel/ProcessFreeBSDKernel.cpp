@@ -259,9 +259,10 @@ ProcessFreeBSDKernel::DoLoadCore ()
         m_kvm = kvm_openfiles(m_kernel_image_file_name.AsCString(),
                               m_core_file_name.AsCString(), nullptr,
                               O_RDONLY, kvm_err);
-        if (m_kvm == nullptr && log)
+        if (m_kvm == nullptr)
         {
-            log->Printf ("ProcessFreeBSDKernel::DoLoadCore() error %s", kvm_err);
+            if (log)
+                log->Printf ("ProcessFreeBSDKernel::DoLoadCore() error %s", kvm_err);
             error.SetErrorString("Open core file failed in FreeBSD Kernel");
         } else {
             InitializeThreads();
