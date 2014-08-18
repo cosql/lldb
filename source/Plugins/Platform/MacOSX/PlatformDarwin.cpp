@@ -23,6 +23,7 @@
 #include "lldb/Core/ModuleSpec.h"
 #include "lldb/Core/Timer.h"
 #include "lldb/Host/Host.h"
+#include "lldb/Host/FileSystem.h"
 #include "lldb/Host/Symbols.h"
 #include "lldb/Symbol/ObjectFile.h"
 #include "lldb/Symbol/SymbolFile.h"
@@ -55,7 +56,8 @@ PlatformDarwin::~PlatformDarwin()
 
 FileSpecList
 PlatformDarwin::LocateExecutableScriptingResources (Target *target,
-                                                    Module &module)
+                                                    Module &module,
+                                                    Stream* feedback_stream)
 {
     FileSpecList file_list;
     if (target && target->GetDebugger().GetScriptLanguage() == eScriptLanguagePython)
@@ -83,6 +85,7 @@ PlatformDarwin::LocateExecutableScriptingResources (Target *target,
                             while (module_spec.GetFilename())
                             {
                                 std::string module_basename (module_spec.GetFilename().GetCString());
+                                std::string original_module_basename (module_basename);
 
                                 // FIXME: for Python, we cannot allow certain characters in module
                                 // filenames we import. Theoretically, different scripting languages may
@@ -96,10 +99,39 @@ PlatformDarwin::LocateExecutableScriptingResources (Target *target,
                                 
 
                                 StreamString path_string;
+                                StreamString original_path_string;
                                 // for OSX we are going to be in .dSYM/Contents/Resources/DWARF/<basename>
                                 // let us go to .dSYM/Contents/Resources/Python/<basename>.py and see if the file exists
                                 path_string.Printf("%s/../Python/%s.py",symfile_spec.GetDirectory().GetCString(), module_basename.c_str());
+                                original_path_string.Printf("%s/../Python/%s.py",symfile_spec.GetDirectory().GetCString(), original_module_basename.c_str());
                                 FileSpec script_fspec(path_string.GetData(), true);
+                                FileSpec orig_script_fspec(original_path_string.GetData(), true);
+                                
+                                // if we did some replacements of reserved characters, and a file with the untampered name
+                                // exists, then warn the user that the file as-is shall not be loaded
+                                if (feedback_stream)
+                                {
+                                    if (module_basename != original_module_basename
+                                        && orig_script_fspec.Exists())
+                                    {
+                                        if (script_fspec.Exists())
+                                            feedback_stream->Printf("warning: the symbol file '%s' contains a debug script. However, its name"
+                                                                    " '%s' contains reserved characters and as such cannot be loaded. LLDB will"
+                                                                    " load '%s' instead. Consider removing the file with the malformed name to"
+                                                                    " eliminate this warning.\n",
+                                                                    symfile_spec.GetPath().c_str(),
+                                                                    original_path_string.GetData(),
+                                                                    path_string.GetData());
+                                        else
+                                            feedback_stream->Printf("warning: the symbol file '%s' contains a debug script. However, its name"
+                                                                    " contains reserved characters and as such cannot be loaded. If you intend"
+                                                                    " to have this script loaded, please rename '%s' to '%s' and retry.\n",
+                                                                    symfile_spec.GetPath().c_str(),
+                                                                    original_path_string.GetData(),
+                                                                    path_string.GetData());
+                                    }
+                                }
+                                
                                 if (script_fspec.Exists())
                                 {
                                     file_list.Append (script_fspec);
@@ -139,7 +171,11 @@ PlatformDarwin::ResolveExecutable (const FileSpec &exe_file,
     {
         // If we have "ls" as the exe_file, resolve the executable loation based on
         // the current path variables
-        if (!resolved_exe_file.Exists())
+        if (resolved_exe_file.Exists())
+        {
+            
+        }
+        else
         {
             exe_file.GetPath (exe_path, sizeof(exe_path));
             resolved_exe_file.SetFile(exe_path, true);
@@ -155,8 +191,11 @@ PlatformDarwin::ResolveExecutable (const FileSpec &exe_file,
             error.Clear();
         else
         {
-            exe_file.GetPath (exe_path, sizeof(exe_path));
-            error.SetErrorStringWithFormat ("unable to find executable for '%s'", exe_path);
+            const uint32_t permissions = resolved_exe_file.GetPermissions();
+            if (permissions && (permissions & eFilePermissionsEveryoneR) == 0)
+                error.SetErrorStringWithFormat ("executable '%s' is not readable", resolved_exe_file.GetPath().c_str());
+            else
+                error.SetErrorStringWithFormat ("unable to find executable for '%s'", resolved_exe_file.GetPath().c_str());
         }
     }
     else
@@ -231,10 +270,17 @@ PlatformDarwin::ResolveExecutable (const FileSpec &exe_file,
             
             if (error.Fail() || !exe_module_sp)
             {
-                error.SetErrorStringWithFormat ("'%s' doesn't contain any '%s' platform architectures: %s",
-                                                exe_file.GetPath().c_str(),
-                                                GetPluginName().GetCString(),
-                                                arch_names.GetString().c_str());
+                if (exe_file.Readable())
+                {
+                    error.SetErrorStringWithFormat ("'%s' doesn't contain any '%s' platform architectures: %s",
+                                                    exe_file.GetPath().c_str(),
+                                                    GetPluginName().GetCString(),
+                                                    arch_names.GetString().c_str());
+                }
+                else
+                {
+                    error.SetErrorStringWithFormat("'%s' is not readable", exe_file.GetPath().c_str());
+                }
             }
         }
     }
@@ -273,7 +319,7 @@ static lldb_private::Error
 MakeCacheFolderForFile (const FileSpec& module_cache_spec)
 {
     FileSpec module_cache_folder = module_cache_spec.CopyByRemovingLastPathComponent();
-    return Host::MakeDirectory(module_cache_folder.GetPath().c_str(), eFilePermissionsDirectoryDefault);
+    return FileSystem::MakeDirectory(module_cache_folder.GetPath().c_str(), eFilePermissionsDirectoryDefault);
 }
 
 static lldb_private::Error
@@ -352,7 +398,7 @@ PlatformDarwin::GetSharedModuleWithLocalCache (const lldb_private::ModuleSpec &m
                     // when going over the *slow* GDB remote transfer mechanism we first check
                     // the hashes of the files - and only do the actual transfer if they differ
                     uint64_t high_local,high_remote,low_local,low_remote;
-                    Host::CalculateMD5 (module_cache_spec, low_local, high_local);
+                    FileSystem::CalculateMD5(module_cache_spec, low_local, high_local);
                     m_remote_platform_sp->CalculateMD5(module_spec.GetFileSpec(), low_remote, high_remote);
                     if (low_local != low_remote || high_local != high_remote)
                     {

@@ -23,6 +23,9 @@
 
 namespace lldb_private {
 
+class FileAction;
+class ProcessLaunchInfo;
+
 //----------------------------------------------------------------------
 /// @class Host Host.h "lldb/Host/Host.h"
 /// @brief A class that provides host computer information.
@@ -362,15 +365,6 @@ public:
     SetShortThreadName (lldb::pid_t pid, lldb::tid_t tid, const char *name, size_t len);
 
     //------------------------------------------------------------------
-    /// Gets the host environment's native path syntax (Windows / Posix).
-    ///
-    /// @return
-    ///     \b One of {FileSpec::ePathSyntaxWindows, FileSpec::ePathSyntaxPosix}
-    //------------------------------------------------------------------
-    static FileSpec::PathSyntax
-    GetHostPathSyntax();
-
-    //------------------------------------------------------------------
     /// Gets the FileSpec of the user profile directory.  On Posix-platforms
     /// this is ~, and on windows this is generally something like
     /// C:\Users\Alice.
@@ -508,6 +502,8 @@ public:
 
     static Error
     LaunchProcessPosixSpawn (const char *exe_path, ProcessLaunchInfo &launch_info, ::pid_t &pid);
+
+    static bool AddPosixSpawnFileAction(void *file_actions, const FileAction *info, Log *log, Error &error);
 #endif
 
     static lldb::pid_t
@@ -562,63 +558,6 @@ public:
     DynamicLibraryGetSymbol (void *dynamic_library_handle, 
                              const char *symbol_name, 
                              Error &error);
-    
-    static Error
-    MakeDirectory (const char* path, uint32_t mode);
-    
-    static Error
-    RemoveDirectory (const char* path, bool recurse);
-    
-    static Error
-    GetFilePermissions (const char* path, uint32_t &file_permissions);
-
-    static Error
-    SetFilePermissions (const char* path, uint32_t file_permissions);
-    
-    static Error
-    Symlink (const char *src, const char *dst);
-    
-    static Error
-    Readlink (const char *path, char *buf, size_t buf_len);
-
-    static Error
-    Unlink (const char *path);
-
-    static lldb::user_id_t
-    OpenFile (const FileSpec& file_spec,
-              uint32_t flags,
-              uint32_t mode,
-              Error &error);
-    
-    static bool
-    CloseFile (lldb::user_id_t fd,
-               Error &error);
-    
-    static uint64_t
-    WriteFile (lldb::user_id_t fd,
-               uint64_t offset,
-               const void* src,
-               uint64_t src_len,
-               Error &error);
-    
-    static uint64_t
-    ReadFile (lldb::user_id_t fd,
-              uint64_t offset,
-              void* dst,
-              uint64_t dst_len,
-              Error &error);
-
-    static lldb::user_id_t
-    GetFileSize (const FileSpec& file_spec);
-    
-    static bool
-    GetFileExists (const FileSpec& file_spec);
-    
-    static bool
-    CalculateMD5 (const FileSpec& file_spec,
-                  uint64_t &low,
-                  uint64_t &high);
-
 };
 
 } // namespace lldb_private

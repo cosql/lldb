@@ -319,8 +319,8 @@ ProcessInstanceInfo::DumpTableHeader (Stream &s, Platform *platform, bool show_a
     }
     else
     {
-        s.Printf     ("PID    PARENT USER       ARCH    %s\n", label);
-        s.PutCString ("====== ====== ========== ======= ============================\n");
+        s.Printf     ("PID    PARENT USER       TRIPLE                   %s\n", label);
+        s.PutCString ("====== ====== ========== ======================== ============================\n");
     }
 }
 
@@ -362,10 +362,9 @@ ProcessInstanceInfo::DumpAsTableRow (Stream &s, Platform *platform, bool show_ar
         }
         else
         {
-            s.Printf ("%-10s %-7d %s ", 
+            s.Printf ("%-10s %-24s ",
                       platform->GetUserName (m_euid),
-                      (int)m_arch.GetTriple().getArchName().size(),
-                      m_arch.GetTriple().getArchName().data());
+                      m_arch.IsValid() ? m_arch.GetTriple().str().c_str() : "");
         }
 
         if (verbose || show_args)
@@ -403,45 +402,44 @@ ProcessLaunchCommandOptions::SetOptionValue (uint32_t option_idx, const char *op
             break;
             
         case 'i':   // STDIN for read only
-            {   
-                ProcessLaunchInfo::FileAction action;
-                if (action.Open (STDIN_FILENO, option_arg, true, false))
-                    launch_info.AppendFileAction (action);
-            }
+        {
+            FileAction action;
+            if (action.Open (STDIN_FILENO, option_arg, true, false))
+                launch_info.AppendFileAction (action);
             break;
+        }
             
         case 'o':   // Open STDOUT for write only
-            {   
-                ProcessLaunchInfo::FileAction action;
-                if (action.Open (STDOUT_FILENO, option_arg, false, true))
-                    launch_info.AppendFileAction (action);
-            }
+        {
+            FileAction action;
+            if (action.Open (STDOUT_FILENO, option_arg, false, true))
+                launch_info.AppendFileAction (action);
             break;
+        }
 
         case 'e':   // STDERR for write only
-            {   
-                ProcessLaunchInfo::FileAction action;
-                if (action.Open (STDERR_FILENO, option_arg, false, true))
-                    launch_info.AppendFileAction (action);
-            }
+        {
+            FileAction action;
+            if (action.Open (STDERR_FILENO, option_arg, false, true))
+                launch_info.AppendFileAction (action);
             break;
-            
+        }
 
         case 'p':   // Process plug-in name
             launch_info.SetProcessPluginName (option_arg);    
             break;
             
         case 'n':   // Disable STDIO
-            {
-                ProcessLaunchInfo::FileAction action;
-                if (action.Open (STDIN_FILENO, "/dev/null", true, false))
-                    launch_info.AppendFileAction (action);
-                if (action.Open (STDOUT_FILENO, "/dev/null", false, true))
-                    launch_info.AppendFileAction (action);
-                if (action.Open (STDERR_FILENO, "/dev/null", false, true))
-                    launch_info.AppendFileAction (action);
-            }
+        {
+            FileAction action;
+            if (action.Open (STDIN_FILENO, "/dev/null", true, false))
+                launch_info.AppendFileAction (action);
+            if (action.Open (STDOUT_FILENO, "/dev/null", false, true))
+                launch_info.AppendFileAction (action);
+            if (action.Open (STDERR_FILENO, "/dev/null", false, true))
+                launch_info.AppendFileAction (action);
             break;
+        }
             
         case 'w': 
             launch_info.SetWorkingDirectory (option_arg);    
@@ -474,7 +472,6 @@ ProcessLaunchCommandOptions::SetOptionValue (uint32_t option_idx, const char *op
         default:
             error.SetErrorStringWithFormat("unrecognized short option character '%c'", short_option);
             break;
-            
     }
     return error;
 }
@@ -3022,7 +3019,17 @@ Process::Attach (ProcessAttachInfo &attach_info)
                     {
                         match_info.GetProcessInfo().GetExecutableFile().GetPath (process_name, sizeof(process_name));    
                         if (num_matches > 1)
-                            error.SetErrorStringWithFormat ("more than one process named %s", process_name);
+                        {
+                            StreamString s;
+                            ProcessInstanceInfo::DumpTableHeader (s, platform_sp.get(), true, false);
+                            for (size_t i = 0; i < num_matches; i++)
+                            {
+                                process_infos.GetProcessInfoAtIndex(i).DumpAsTableRow(s, platform_sp.get(), true, false);
+                            }
+                            error.SetErrorStringWithFormat ("more than one process named %s:\n%s",
+                                                            process_name,
+                                                            s.GetData());
+                        }
                         else
                             error.SetErrorStringWithFormat ("could not find a process named %s", process_name);
                     }
