@@ -9,7 +9,6 @@
 
 // C Includes
 #include <libgen.h>
-#include <kvm.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/param.h>
@@ -204,6 +203,7 @@ DynamicLoaderFreeBSDKernel::InitLoadSpecs()
     char buf[PATH_MAX];
     char *cp, *module_dir;
     int word_bytes;
+    Error err;
 
     const ArchSpec &arch = m_process->GetTarget().GetArchitecture();
     if (arch.GetMachine() == llvm::Triple::mips64 ||
@@ -215,9 +215,9 @@ DynamicLoaderFreeBSDKernel::InitLoadSpecs()
     ModuleSP module = m_process->GetTarget().GetExecutableModule();
 
     addr = m_kernel_process->LookUpSymbolAddressInModule(module, "linker_path");
-    kvm_t * kd = static_cast<ProcessFreeBSDKernel *>(m_process)->GetKVM();
-    kvm_read(kd, addr, buf, PATH_MAX);
+    ReadMemory(addr, buf, PATH_MAX, err);
     cp = buf;
+
     while ((module_dir = strsep(&cp, ";")) != NULL) {
         m_module_paths.push_back(module_dir);
     }
@@ -318,5 +318,5 @@ DynamicLoaderFreeBSDKernel::FindKLDAddress(std::string kld_name,
 size_t DynamicLoaderFreeBSDKernel::ReadMemory(addr_t addr, void *buf,
                                               size_t size, Error &error)
 {
-    return m_kernel_process->ReadMemory(addr, buf, size, error);
+    return m_process->ReadMemory(addr, buf, size, error);
 }
