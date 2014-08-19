@@ -86,7 +86,6 @@ protected:
     lldb::addr_t m_address_offset, m_filename_offset;
     lldb::addr_t m_next_offset, m_pathname_offset;
     std::vector<std::string> m_module_paths;
-    ProcessFreeBSDKernel* m_kernel_process;
 private:
     bool
     IsKLDOK (std::string path);
@@ -99,6 +98,8 @@ private:
     bool FindKLDAddress(std::string kld_name, lldb::addr_t& kld_addr);
 
     void InitLoadSpecs();
+    lldb::addr_t 
+    LookUpSymbolAddressInModule(lldb::ModuleSP module, const char *name);
 
     DISALLOW_COPY_AND_ASSIGN(DynamicLoaderFreeBSDKernel);
 };

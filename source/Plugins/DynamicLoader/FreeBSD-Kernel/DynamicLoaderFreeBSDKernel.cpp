@@ -102,8 +102,7 @@ DynamicLoaderFreeBSDKernel::DynamicLoaderFreeBSDKernel(Process *process)
     : DynamicLoader(process),
       m_kernel_load_addr(LLDB_INVALID_ADDRESS)
 {
-    m_kernel_process = static_cast<ProcessFreeBSDKernel*>(process);
-    InitLoadSpecs();
+     InitLoadSpecs();
 }
 
 DynamicLoaderFreeBSDKernel::~DynamicLoaderFreeBSDKernel()
@@ -214,7 +213,7 @@ DynamicLoaderFreeBSDKernel::InitLoadSpecs()
 
     ModuleSP module = m_process->GetTarget().GetExecutableModule();
 
-    addr = m_kernel_process->LookUpSymbolAddressInModule(module, "linker_path");
+    addr = LookUpSymbolAddressInModule(module, "linker_path");
     ReadMemory(addr, buf, PATH_MAX, err);
     cp = buf;
 
@@ -222,13 +221,11 @@ DynamicLoaderFreeBSDKernel::InitLoadSpecs()
         m_module_paths.push_back(module_dir);
     }
 
-    m_kernel_file_addr =
-        m_kernel_process->LookUpSymbolAddressInModule(module, "linker_kernel_file");
+    m_kernel_file_addr = LookUpSymbolAddressInModule(module, "linker_kernel_file");
 
     m_kernel_load_addr = ReadPointer(m_kernel_file_addr);
 
-    m_linker_files_addr =
-        m_kernel_process->LookUpSymbolAddressInModule(module, "linker_files");
+    m_linker_files_addr = LookUpSymbolAddressInModule(module, "linker_files");
 
     m_next_offset = word_bytes + sizeof(int) * 4;
     m_filename_offset = m_next_offset + word_bytes * 2;
@@ -313,6 +310,34 @@ DynamicLoaderFreeBSDKernel::FindKLDAddress(std::string kld_name,
         }
     }
     return false;
+}
+
+lldb::addr_t 
+DynamicLoaderFreeBSDKernel::LookUpSymbolAddressInModule(lldb::ModuleSP module,
+                                                        const char *name)
+{
+    lldb_private::SymbolVendor *sym_vendor = module->GetSymbolVendor ();
+    if (sym_vendor)
+    {
+        lldb_private::Symtab *symtab = sym_vendor->GetSymtab();
+        if (symtab)
+        {
+            std::vector<uint32_t> match_indexes;
+            ConstString symbol_name (name);
+            uint32_t num_matches = 0;
+
+            num_matches = symtab->AppendSymbolIndexesWithName (symbol_name,
+                                                               match_indexes);
+
+            if (num_matches > 0)
+            {
+
+                Symbol *symbol = symtab->SymbolAtIndex(match_indexes[0]);
+                return symbol->GetAddress().GetFileAddress();
+            }
+        }
+    }
+    return LLDB_INVALID_ADDRESS;
 }
 
 size_t DynamicLoaderFreeBSDKernel::ReadMemory(addr_t addr, void *buf,
