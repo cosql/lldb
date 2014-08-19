@@ -102,7 +102,7 @@ DynamicLoaderFreeBSDKernel::DynamicLoaderFreeBSDKernel(Process *process)
     : DynamicLoader(process),
       m_kernel_load_addr(LLDB_INVALID_ADDRESS)
 {
-     InitLoadSpecs();
+    InitLoadSpecs();
 }
 
 DynamicLoaderFreeBSDKernel::~DynamicLoaderFreeBSDKernel()
@@ -112,7 +112,7 @@ DynamicLoaderFreeBSDKernel::~DynamicLoaderFreeBSDKernel()
 void
 DynamicLoaderFreeBSDKernel::DidAttach()
 {
-     LoadAllCurrentModules();
+    LoadAllCurrentModules();
 }
 
 void
@@ -312,7 +312,7 @@ DynamicLoaderFreeBSDKernel::FindKLDAddress(std::string kld_name,
     return false;
 }
 
-lldb::addr_t 
+lldb::addr_t
 DynamicLoaderFreeBSDKernel::LookUpSymbolAddressInModule(lldb::ModuleSP module,
                                                         const char *name)
 {
