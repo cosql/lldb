@@ -36,10 +36,6 @@
 #include <mach/mach_port.h>
 #include <mach/mach_init.h>
 #include <mach-o/dyld.h>
-#include <AvailabilityMacros.h>
-#ifndef CPU_SUBTYPE_X86_64_H
-#define CPU_SUBTYPE_X86_64_H ((cpu_subtype_t)8)
-#endif
 #endif
 
 #if defined (__linux__) || defined (__FreeBSD__) || defined (__FreeBSD_kernel__) || defined (__APPLE__) || defined(__NetBSD__)
@@ -56,6 +52,7 @@
 #include <limits>
 
 #include "lldb/Host/Host.h"
+#include "lldb/Host/HostInfo.h"
 #include "lldb/Core/ArchSpec.h"
 #include "lldb/Core/ConstString.h"
 #include "lldb/Core/Debugger.h"
@@ -319,199 +316,6 @@ Host::SystemLog (SystemLogType type, const char *format, ...)
     SystemLog (type, format, args);
     va_end (args);
 }
-
-const ArchSpec &
-Host::GetArchitecture (SystemDefaultArchitecture arch_kind)
-{
-    static bool g_supports_32 = false;
-    static bool g_supports_64 = false;
-    static ArchSpec g_host_arch_32;
-    static ArchSpec g_host_arch_64;
-
-#if defined (__APPLE__)
-
-    // Apple is different in that it can support both 32 and 64 bit executables
-    // in the same operating system running concurrently. Here we detect the
-    // correct host architectures for both 32 and 64 bit including if 64 bit
-    // executables are supported on the system.
-
-    if (g_supports_32 == false && g_supports_64 == false)
-    {
-        // All apple systems support 32 bit execution.
-        g_supports_32 = true;
-        uint32_t cputype, cpusubtype;
-        uint32_t is_64_bit_capable = false;
-        size_t len = sizeof(cputype);
-        ArchSpec host_arch;
-        // These will tell us about the kernel architecture, which even on a 64
-        // bit machine can be 32 bit...
-        if  (::sysctlbyname("hw.cputype", &cputype, &len, NULL, 0) == 0)
-        {
-            len = sizeof (cpusubtype);
-            if (::sysctlbyname("hw.cpusubtype", &cpusubtype, &len, NULL, 0) != 0)
-                cpusubtype = CPU_TYPE_ANY;
-                
-            len = sizeof (is_64_bit_capable);
-            if  (::sysctlbyname("hw.cpu64bit_capable", &is_64_bit_capable, &len, NULL, 0) == 0)
-            {
-                if (is_64_bit_capable)
-                    g_supports_64 = true;
-            }
-            
-            if (is_64_bit_capable)
-            {
-                if (cputype & CPU_ARCH_ABI64)
-                {
-                    // We have a 64 bit kernel on a 64 bit system
-                    g_host_arch_64.SetArchitecture (eArchTypeMachO, cputype, cpusubtype);
-                }
-                else
-                {
-                    // We have a 64 bit kernel that is returning a 32 bit cputype, the
-                    // cpusubtype will be correct as if it were for a 64 bit architecture
-                    g_host_arch_64.SetArchitecture (eArchTypeMachO, cputype | CPU_ARCH_ABI64, cpusubtype);
-                }
-                
-                // Now we need modify the cpusubtype for the 32 bit slices.
-                uint32_t cpusubtype32 = cpusubtype;
-#if defined (__i386__) || defined (__x86_64__)
-                if (cpusubtype == CPU_SUBTYPE_486 || cpusubtype == CPU_SUBTYPE_X86_64_H)
-                    cpusubtype32 = CPU_SUBTYPE_I386_ALL;
-#elif defined (__arm__) || defined (__arm64__) || defined (__aarch64__)
-                if (cputype == CPU_TYPE_ARM || cputype == CPU_TYPE_ARM64)
-                    cpusubtype32 = CPU_SUBTYPE_ARM_V7S;
-#endif
-                g_host_arch_32.SetArchitecture (eArchTypeMachO, cputype & ~(CPU_ARCH_MASK), cpusubtype32);
-                
-                if (cputype == CPU_TYPE_ARM || cputype == CPU_TYPE_ARM64)
-                {
-                    g_host_arch_32.GetTriple().setOS(llvm::Triple::IOS);
-                    g_host_arch_64.GetTriple().setOS(llvm::Triple::IOS);
-                }
-                else
-                {
-                    g_host_arch_32.GetTriple().setOS(llvm::Triple::MacOSX);
-                    g_host_arch_64.GetTriple().setOS(llvm::Triple::MacOSX);
-                }
-            }
-            else
-            {
-                // We have a 32 bit kernel on a 32 bit system
-                g_host_arch_32.SetArchitecture (eArchTypeMachO, cputype, cpusubtype);
-                g_host_arch_64.Clear();
-            }
-        }
-    }
-    
-#else // #if defined (__APPLE__)
-
-    if (g_supports_32 == false && g_supports_64 == false)
-    {
-        llvm::Triple triple(llvm::sys::getDefaultTargetTriple());
-
-        g_host_arch_32.Clear();
-        g_host_arch_64.Clear();
-
-        // If the OS is Linux, "unknown" in the vendor slot isn't what we want
-        // for the default triple.  It's probably an artifact of config.guess.
-        if (triple.getOS() == llvm::Triple::Linux && triple.getVendor() == llvm::Triple::UnknownVendor)
-            triple.setVendorName ("");
-
-        const char* distribution_id = GetDistributionId ().AsCString();
-
-        switch (triple.getArch())
-        {
-        default:
-            g_host_arch_32.SetTriple(triple);
-            g_host_arch_32.SetDistributionId (distribution_id);
-            g_supports_32 = true;
-            break;
-
-        case llvm::Triple::x86_64:
-            g_host_arch_64.SetTriple(triple);
-            g_host_arch_64.SetDistributionId (distribution_id);
-            g_supports_64 = true;
-            g_host_arch_32.SetTriple(triple.get32BitArchVariant());
-            g_host_arch_32.SetDistributionId (distribution_id);
-            g_supports_32 = true;
-            break;
-
-        case llvm::Triple::mips64:
-        case llvm::Triple::sparcv9:
-        case llvm::Triple::ppc64:
-            g_host_arch_64.SetTriple(triple);
-            g_host_arch_64.SetDistributionId (distribution_id);
-            g_supports_64 = true;
-            break;
-        }
-
-        g_supports_32 = g_host_arch_32.IsValid();
-        g_supports_64 = g_host_arch_64.IsValid();
-    }
-    
-#endif // #else for #if defined (__APPLE__)
-    
-    if (arch_kind == eSystemDefaultArchitecture32)
-        return g_host_arch_32;
-    else if (arch_kind == eSystemDefaultArchitecture64)
-        return g_host_arch_64;
-
-    if (g_supports_64)
-        return g_host_arch_64;
-        
-    return g_host_arch_32;
-}
-
-const ConstString &
-Host::GetVendorString()
-{
-    static ConstString g_vendor;
-    if (!g_vendor)
-    {
-        const ArchSpec &host_arch = GetArchitecture (eSystemDefaultArchitecture);
-        const llvm::StringRef &str_ref = host_arch.GetTriple().getVendorName();
-        g_vendor.SetCStringWithLength(str_ref.data(), str_ref.size());
-    }
-    return g_vendor;
-}
-
-const ConstString &
-Host::GetOSString()
-{
-    static ConstString g_os_string;
-    if (!g_os_string)
-    {
-        const ArchSpec &host_arch = GetArchitecture (eSystemDefaultArchitecture);
-        const llvm::StringRef &str_ref = host_arch.GetTriple().getOSName();
-        g_os_string.SetCStringWithLength(str_ref.data(), str_ref.size());
-    }
-    return g_os_string;
-}
-
-const ConstString &
-Host::GetTargetTriple()
-{
-    static ConstString g_host_triple;
-    if (!(g_host_triple))
-    {
-        const ArchSpec &host_arch = GetArchitecture (eSystemDefaultArchitecture);
-        g_host_triple.SetCString(host_arch.GetTriple().getTriple().c_str());
-    }
-    return g_host_triple;
-}
-
-// See linux/Host.cpp for Linux-based implementations of this.
-// Add your platform-specific implementation to the appropriate host file.
-#if !defined(__linux__)
-
-const ConstString &
-    Host::GetDistributionId ()
-{
-    static ConstString s_distribution_id;
-    return s_distribution_id;
-}
-
-#endif // #if !defined(__linux__)
 
 lldb::pid_t
 Host::GetCurrentProcessID()
@@ -1401,24 +1205,6 @@ Host::GetLLDBPath (PathType path_type, FileSpec &file_spec)
     return false;
 }
 
-
-bool
-Host::GetHostname (std::string &s)
-{
-    char hostname[PATH_MAX];
-    hostname[sizeof(hostname) - 1] = '\0';
-    if (::gethostname (hostname, sizeof(hostname) - 1) == 0)
-    {
-        struct hostent* h = ::gethostbyname (hostname);
-        if (h)
-            s.assign (h->h_name);
-        else
-            s.assign (hostname);
-        return true;
-    }
-    return false;
-}
-
 #ifndef _WIN32
 
 const char *
@@ -1506,22 +1292,6 @@ Host::GetEffectiveGroupID ()
 
 #endif
 
-#if !defined (__APPLE__) && !defined (__FreeBSD__) && !defined (__FreeBSD_kernel__) // see macosx/Host.mm
-bool
-Host::GetOSBuildString (std::string &s)
-{
-    s.clear();
-    return false;
-}
-
-bool
-Host::GetOSKernelDescription (std::string &s)
-{
-    s.clear();
-    return false;
-}
-#endif
-
 #if !defined (__APPLE__) && !defined (__FreeBSD__) && !defined (__FreeBSD_kernel__) \
     && !defined(__linux__) && !defined(_WIN32)
 uint32_t
@@ -1557,7 +1327,7 @@ Host::GetDummyTarget (lldb_private::Debugger &debugger)
     {
         ArchSpec arch(Target::GetDefaultArchitecture());
         if (!arch.IsValid())
-            arch = Host::GetArchitecture ();
+            arch = HostInfo::GetArchitecture();
         Error err = debugger.GetTargetList().CreateTarget(debugger, 
                                                           NULL,
                                                           arch.GetTriple().getTriple().c_str(),
@@ -1792,7 +1562,7 @@ Host::GetPosixspawnFlags (ProcessLaunchInfo &launch_info)
         g_use_close_on_exec_flag = eLazyBoolNo;
         
         uint32_t major, minor, update;
-        if (Host::GetOSVersion(major, minor, update))
+        if (HostInfo::GetOSVersion(major, minor, update))
         {
             // Kernel panic if we use the POSIX_SPAWN_CLOEXEC_DEFAULT on 10.7 or earlier
             if (major > 10 || (major == 10 && minor > 7))
@@ -2178,54 +1948,6 @@ Host::LaunchProcess (ProcessLaunchInfo &launch_info)
 #endif // defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__)
 
 #ifndef _WIN32
-
-size_t
-Host::GetPageSize()
-{
-    return ::getpagesize();
-}
-
-uint32_t
-Host::GetNumberCPUS ()
-{
-    static uint32_t g_num_cores = UINT32_MAX;
-    if (g_num_cores == UINT32_MAX)
-    {
-#if defined(__APPLE__) or defined (__linux__) or defined (__FreeBSD__) or defined (__FreeBSD_kernel__)
-
-        g_num_cores = ::sysconf(_SC_NPROCESSORS_ONLN);
-
-#else
-        
-        // Assume POSIX support if a host specific case has not been supplied above
-        g_num_cores = 0;
-        int num_cores = 0;
-        size_t num_cores_len = sizeof(num_cores);
-#ifdef HW_AVAILCPU
-        int mib[] = { CTL_HW, HW_AVAILCPU };
-#else
-        int mib[] = { CTL_HW, HW_NCPU };
-#endif
-        
-        /* get the number of CPUs from the system */
-        if (sysctl(mib, llvm::array_lengthof(mib), &num_cores, &num_cores_len, NULL, 0) == 0 && (num_cores > 0))
-        {
-            g_num_cores = num_cores;
-        }
-        else
-        {
-            mib[1] = HW_NCPU;
-            num_cores_len = sizeof(num_cores);
-            if (sysctl(mib, llvm::array_lengthof(mib), &num_cores, &num_cores_len, NULL, 0) == 0 && (num_cores > 0))
-            {
-                if (num_cores > 0)
-                    g_num_cores = num_cores;
-            }
-        }
-#endif
-    }
-    return g_num_cores;
-}
 
 void
 Host::Kill(lldb::pid_t pid, int signo)

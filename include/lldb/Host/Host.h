@@ -91,49 +91,6 @@ public:
                                  lldb::pid_t pid,
                                  bool monitor_signals);
 
-    //------------------------------------------------------------------
-    /// Get the host page size.
-    ///
-    /// @return
-    ///     The size in bytes of a VM page on the host system.
-    //------------------------------------------------------------------
-    static size_t
-    GetPageSize();
-
-    //------------------------------------------------------------------
-    /// Returns the endianness of the host system.
-    ///
-    /// @return
-    ///     Returns the endianness of the host system as a lldb::ByteOrder
-    ///     enumeration.
-    //------------------------------------------------------------------
-    static lldb::ByteOrder
-    GetByteOrder ();
-
-    //------------------------------------------------------------------
-    /// Returns the number of CPUs on this current host.
-    ///
-    /// @return
-    ///     Number of CPUs on this current host, or zero if the number
-    ///     of CPUs can't be determined on this host.
-    //------------------------------------------------------------------
-    static uint32_t
-    GetNumberCPUS ();
-
-    static bool
-    GetOSVersion (uint32_t &major, 
-                  uint32_t &minor, 
-                  uint32_t &update);
-
-    static bool
-    GetOSBuildString (std::string &s);
-    
-    static bool
-    GetOSKernelDescription (std::string &s);
-
-    static bool
-    GetHostname (std::string &s);
-
     static const char *
     GetUserName (uint32_t uid, std::string &user_name);
     
@@ -164,67 +121,6 @@ public:
 
     static void
     SystemLog (SystemLogType type, const char *format, va_list args);
-
-    //------------------------------------------------------------------
-    /// Gets the host architecture.
-    ///
-    /// @return
-    ///     A const architecture object that represents the host
-    ///     architecture.
-    //------------------------------------------------------------------
-    enum SystemDefaultArchitecture
-    {
-        eSystemDefaultArchitecture,     // The overall default architecture that applications will run on this host
-        eSystemDefaultArchitecture32,   // If this host supports 32 bit programs, return the default 32 bit arch
-        eSystemDefaultArchitecture64    // If this host supports 64 bit programs, return the default 64 bit arch
-    };
-
-    static const ArchSpec &
-    GetArchitecture (SystemDefaultArchitecture arch_kind = eSystemDefaultArchitecture);
-
-    //------------------------------------------------------------------
-    /// Gets the host vendor string.
-    ///
-    /// @return
-    ///     A const string object containing the host vendor name.
-    //------------------------------------------------------------------
-    static const ConstString &
-    GetVendorString ();
-
-    //------------------------------------------------------------------
-    /// Gets the host Operating System (OS) string.
-    ///
-    /// @return
-    ///     A const string object containing the host OS name.
-    //------------------------------------------------------------------
-    static const ConstString &
-    GetOSString ();
-
-    //------------------------------------------------------------------
-    /// Gets the host target triple as a const string.
-    ///
-    /// @return
-    ///     A const string object containing the host target triple.
-    //------------------------------------------------------------------
-    static const ConstString &
-    GetTargetTriple ();
-
-    //------------------------------------------------------------------
-    /// Gets the name of the distribution (i.e. distributor id).
-    ///
-    /// On Linux, this will return the equivalent of lsb_release -i.
-    /// Android will return 'android'.  Other systems may return
-    /// nothing.
-    ///
-    /// @return
-    ///     A ConstString reference containing the OS distribution id.
-    ///     The return string will be all lower case, with whitespace
-    ///     replaced with underscores.  The return string will be
-    ///     empty (result.AsCString() will return NULL) if the distribution
-    ///     cannot be obtained.
-    //------------------------------------------------------------------
-    static const ConstString &
-    GetDistributionId ();
 
     //------------------------------------------------------------------
     /// Get the process ID for the calling process.
