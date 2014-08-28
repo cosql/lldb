@@ -15,8 +15,10 @@
 #include <string.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <elf.h>
 #include <sys/personality.h>
 #include <sys/ptrace.h>
+#include <sys/uio.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -124,15 +126,13 @@ static void PtraceDisplayBytes(int &req, void *data, size_t data_size)
                 verbose_log->Printf("PTRACE_POKEUSER %s", buf.GetData());
                 break;
             }
-#ifdef PT_SETREGS
+#if !defined (__arm64__) && !defined (__aarch64__)
         case PTRACE_SETREGS:
             {
                 DisplayBytes(buf, data, data_size);
                 verbose_log->Printf("PTRACE_SETREGS %s", buf.GetData());
                 break;
             }
-#endif
-#ifdef PT_SETFPREGS
         case PTRACE_SETFPREGS:
             {
                 DisplayBytes(buf, data, data_size);
@@ -570,13 +570,21 @@ private:
 void
 ReadGPROperation::Execute(ProcessMonitor *monitor)
 {
-#ifdef PT_GETREGS
-    if (PTRACE(PTRACE_GETREGS, m_tid, NULL, m_buf, m_buf_size) < 0)
+#if defined (__arm64__) || defined (__aarch64__)
+    int regset = NT_PRSTATUS;
+    struct iovec ioVec;
+
+    ioVec.iov_base = m_buf;
+    ioVec.iov_len = m_buf_size;
+    if (PTRACE(PTRACE_GETREGSET, m_tid, &regset, &ioVec, m_buf_size) < 0)
         m_result = false;
     else
         m_result = true;
 #else
-    m_result = false;
+    if (PTRACE(PTRACE_GETREGS, m_tid, NULL, m_buf, m_buf_size) < 0)
+        m_result = false;
+    else
+        m_result = true;
 #endif
 }
 
@@ -602,13 +610,21 @@ private:
 void
 ReadFPROperation::Execute(ProcessMonitor *monitor)
 {
-#ifdef PT_GETFPREGS
-    if (PTRACE(PTRACE_GETFPREGS, m_tid, NULL, m_buf, m_buf_size) < 0)
+#if defined (__arm64__) || defined (__aarch64__)
+    int regset = NT_FPREGSET;
+    struct iovec ioVec;
+
+    ioVec.iov_base = m_buf;
+    ioVec.iov_len = m_buf_size;
+    if (PTRACE(PTRACE_GETREGSET, m_tid, &regset, &ioVec, m_buf_size) < 0)
         m_result = false;
     else
         m_result = true;
 #else
-    m_result = false;
+    if (PTRACE(PTRACE_GETFPREGS, m_tid, NULL, m_buf, m_buf_size) < 0)
+        m_result = false;
+    else
+        m_result = true;
 #endif
 }
 
@@ -663,13 +679,21 @@ private:
 void
 WriteGPROperation::Execute(ProcessMonitor *monitor)
 {
-#ifdef PT_SETREGS
-    if (PTRACE(PTRACE_SETREGS, m_tid, NULL, m_buf, m_buf_size) < 0)
+#if defined (__arm64__) || defined (__aarch64__)
+    int regset = NT_PRSTATUS;
+    struct iovec ioVec;
+
+    ioVec.iov_base = m_buf;
+    ioVec.iov_len = m_buf_size;
+    if (PTRACE(PTRACE_SETREGSET, m_tid, &regset, &ioVec, m_buf_size) < 0)
         m_result = false;
     else
         m_result = true;
 #else
-    m_result = false;
+    if (PTRACE(PTRACE_SETREGS, m_tid, NULL, m_buf, m_buf_size) < 0)
+        m_result = false;
+    else
+        m_result = true;
 #endif
 }
 
@@ -695,13 +719,21 @@ private:
 void
 WriteFPROperation::Execute(ProcessMonitor *monitor)
 {
-#ifdef PT_SETFPREGS
-    if (PTRACE(PTRACE_SETFPREGS, m_tid, NULL, m_buf, m_buf_size) < 0)
+#if defined (__arm64__) || defined (__aarch64__)
+    int regset = NT_FPREGSET;
+    struct iovec ioVec;
+
+    ioVec.iov_base = m_buf;
+    ioVec.iov_len = m_buf_size;
+    if (PTRACE(PTRACE_SETREGSET, m_tid, &regset, &ioVec, m_buf_size) < 0)
         m_result = false;
     else
         m_result = true;
 #else
-    m_result = false;
+    if (PTRACE(PTRACE_SETFPREGS, m_tid, NULL, m_buf, m_buf_size) < 0)
+        m_result = false;
+    else
+        m_result = true;
 #endif
 }
 
@@ -766,6 +798,19 @@ ReadThreadPointerOperation::Execute(ProcessMonitor *monitor)
     const ArchSpec& arch = monitor->GetProcess().GetTarget().GetArchitecture();
     switch(arch.GetMachine())
     {
+    case llvm::Triple::aarch64:
+    {
+         int regset = NT_ARM_TLS;
+         struct iovec ioVec;
+
+         ioVec.iov_base = m_addr;
+         ioVec.iov_len = sizeof(lldb::addr_t);
+         if (PTRACE(PTRACE_GETREGSET, m_tid, &regset, &ioVec, ioVec.iov_len) < 0)
+           m_result = false;
+         else
+           m_result = true;
+         break;
+    }
 #if defined(__i386__) || defined(__x86_64__)
     // Note that struct user below has a field named i387 which is x86-specific.
     // Therefore, this case should be compiled only for x86-based systems.

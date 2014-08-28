@@ -9,6 +9,8 @@
 
 #include "lldb/Utility/StringLexer.h"
 
+#include <algorithm>
+
 using namespace lldb_utility;
 
 StringLexer::StringLexer (std::string s) :
@@ -55,7 +57,9 @@ StringLexer::Next ()
 bool
 StringLexer::HasAtLeast (Size s)
 {
-    return m_data.size()-m_position >= s;
+    auto in_m_data = m_data.size()-m_position;
+    auto in_putback = m_putback_data.size();
+    return (in_m_data + in_putback >= s);
 }
 
 
@@ -68,6 +72,10 @@ StringLexer::PutBack (Character c)
 bool
 StringLexer::HasAny (Character c)
 {
+    const auto begin(m_putback_data.begin());
+    const auto end(m_putback_data.end());
+    if (std::find(begin, end, c) != end)
+        return true;
     return m_data.find(c, m_position) != std::string::npos;
 }
 

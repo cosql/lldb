@@ -10,6 +10,7 @@
 #include "lldb/Core/Log.h"
 #include "lldb/Host/linux/HostInfoLinux.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/utsname.h>
@@ -18,10 +19,33 @@
 
 using namespace lldb_private;
 
-std::string HostInfoLinux::m_distribution_id;
-uint32_t HostInfoLinux::m_os_major = 0;
-uint32_t HostInfoLinux::m_os_minor = 0;
-uint32_t HostInfoLinux::m_os_update = 0;
+namespace
+{
+struct HostInfoLinuxFields
+{
+    HostInfoLinuxFields()
+        : m_os_major(0)
+        , m_os_minor(0)
+        , m_os_update(0)
+    {
+    }
+
+    std::string m_distribution_id;
+    uint32_t m_os_major;
+    uint32_t m_os_minor;
+    uint32_t m_os_update;
+};
+
+HostInfoLinuxFields *g_fields = nullptr;
+}
+
+void
+HostInfoLinux::Initialize()
+{
+    HostInfoPosix::Initialize();
+
+    g_fields = new HostInfoLinuxFields();
+}
 
 bool
 HostInfoLinux::GetOSVersion(uint32_t &major, uint32_t &minor, uint32_t &update)
@@ -37,7 +61,7 @@ HostInfoLinux::GetOSVersion(uint32_t &major, uint32_t &minor, uint32_t &update)
         if (uname(&un))
             goto finished;
 
-        int status = sscanf(un.release, "%u.%u.%u", &major, &minor, &update);
+        int status = sscanf(un.release, "%u.%u.%u", &g_fields->m_os_major, &g_fields->m_os_minor, &g_fields->m_os_update);
         if (status == 3)
         {
             success = true;
@@ -46,15 +70,15 @@ HostInfoLinux::GetOSVersion(uint32_t &major, uint32_t &minor, uint32_t &update)
 
         // Some kernels omit the update version, so try looking for just "X.Y" and
         // set update to 0.
-        update = 0;
-        status = sscanf(un.release, "%u.%u", &major, &minor);
+        g_fields->m_os_update = 0;
+        status = sscanf(un.release, "%u.%u", &g_fields->m_os_major, &g_fields->m_os_minor);
         success = !!(status == 2);
     }
 
 finished:
-    major = m_os_major;
-    minor = m_os_minor;
-    update = m_os_update;
+    major = g_fields->m_os_major;
+    minor = g_fields->m_os_minor;
+    update = g_fields->m_os_update;
     return success;
 }
 
@@ -122,9 +146,9 @@ HostInfoLinux::GetDistributionId()
                         return tolower(isspace(ch) ? '_' : ch);
                     });
 
-                    m_distribution_id = id_string;
+                    g_fields->m_distribution_id = id_string;
                     if (log)
-                        log->Printf("distribution id set to \"%s\"", m_distribution_id.c_str());
+                        log->Printf("distribution id set to \"%s\"", g_fields->m_distribution_id.c_str());
                 }
                 else
                 {
@@ -145,7 +169,52 @@ HostInfoLinux::GetDistributionId()
         }
     }
 
-    return m_distribution_id.c_str();
+    return g_fields->m_distribution_id.c_str();
+}
+
+FileSpec
+HostInfoLinux::GetProgramFileSpec()
+{
+    static FileSpec g_program_filespec;
+
+    if (!g_program_filespec)
+    {
+        char exe_path[PATH_MAX];
+        ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+        if (len > 0)
+        {
+            exe_path[len] = 0;
+            g_program_filespec.SetFile(exe_path, false);
+        }
+    }
+
+    return g_program_filespec;
+}
+
+bool
+HostInfoLinux::ComputeSystemPluginsDirectory(FileSpec &file_spec)
+{
+    FileSpec temp_file("/usr/lib/lldb", true);
+    file_spec.GetDirectory().SetCString(temp_file.GetPath().c_str());
+    return true;
+}
+
+bool
+HostInfoLinux::ComputeUserPluginsDirectory(FileSpec &file_spec)
+{
+    // XDG Base Directory Specification
+    // http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
+    // If XDG_DATA_HOME exists, use that, otherwise use ~/.local/share/lldb.
+    const char *xdg_data_home = getenv("XDG_DATA_HOME");
+    if (xdg_data_home && xdg_data_home[0])
+    {
+        std::string user_plugin_dir(xdg_data_home);
+        user_plugin_dir += "/lldb";
+        file_spec.GetDirectory().SetCString(user_plugin_dir.c_str());
+    }
+    else
+        file_spec.GetDirectory().SetCString("~/.local/share/lldb");
+    return true;
 }
 
 void

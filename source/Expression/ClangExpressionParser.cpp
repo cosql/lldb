@@ -26,6 +26,7 @@
 #include "lldb/Expression/IRDynamicChecks.h"
 #include "lldb/Expression/IRInterpreter.h"
 #include "lldb/Host/File.h"
+#include "lldb/Host/HostInfo.h"
 #include "lldb/Symbol/SymbolVendor.h"
 #include "lldb/Target/ExecutionContext.h"
 #include "lldb/Target/ObjCLanguageRuntime.h"
@@ -102,16 +103,6 @@ ClangExpressionParser::ClangExpressionParser (ExecutionContextScope *exe_scope,
     m_compiler (),
     m_code_generator ()
 {
-    // Initialize targets first, so that --version shows registered targets.
-    static struct InitializeLLVM {
-        InitializeLLVM() {
-            llvm::InitializeAllTargets();
-            llvm::InitializeAllAsmPrinters();
-            llvm::InitializeAllTargetMCs();
-            llvm::InitializeAllDisassemblers();
-        }
-    } InitializeLLVM;
-
     // 1. Create a new compiler instance.
     m_compiler.reset(new CompilerInstance());
 
@@ -309,9 +300,9 @@ ClangExpressionParser::Parse (Stream &stream)
         std::string temp_source_path;
 
         FileSpec tmpdir_file_spec;
-        if (Host::GetLLDBPath (lldb::ePathTypeLLDBTempSystemDir, tmpdir_file_spec))
+        if (HostInfo::GetLLDBPath(lldb::ePathTypeLLDBTempSystemDir, tmpdir_file_spec))
         {
-            tmpdir_file_spec.GetFilename().SetCString("expr.XXXXXX");
+            tmpdir_file_spec.AppendPathComponent("expr.XXXXXX");
             temp_source_path = std::move(tmpdir_file_spec.GetPath());
         }
         else
@@ -342,8 +333,8 @@ ClangExpressionParser::Parse (Stream &stream)
 
     if (!created_main_file)
     {
-        MemoryBuffer *memory_buffer = MemoryBuffer::getMemBufferCopy(expr_text, __FUNCTION__);
-        SourceMgr.setMainFileID(SourceMgr.createFileID(memory_buffer));
+        std::unique_ptr<MemoryBuffer> memory_buffer = MemoryBuffer::getMemBufferCopy(expr_text, __FUNCTION__);
+        SourceMgr.setMainFileID(SourceMgr.createFileID(memory_buffer.release()));
     }
 
     diag_buf->BeginSourceFile(m_compiler->getLangOpts(), &m_compiler->getPreprocessor());

@@ -213,68 +213,6 @@ Host::GetModuleFileSpecForHostAddress (const void *host_addr)
     return module_filespec;
 }
 
-void *
-Host::DynamicLibraryOpen(const FileSpec &file_spec, uint32_t options, Error &error)
-{
-    error.SetErrorString("not implemented");
-    return NULL;
-}
-
-Error
-Host::DynamicLibraryClose (void *opaque)
-{
-    Error error;
-    error.SetErrorString("not implemented");
-    return error;
-}
-
-void *
-Host::DynamicLibraryGetSymbol(void *opaque, const char *symbol_name, Error &error)
-{
-    error.SetErrorString("not implemented");
-    return NULL;
-}
-
-const char *
-Host::GetUserName (uint32_t uid, std::string &user_name)
-{
-    return NULL;
-}
-
-const char *
-Host::GetGroupName (uint32_t gid, std::string &group_name)
-{
-    llvm_unreachable("Windows does not support group name");
-    return NULL;
-}
-
-uint32_t
-Host::GetUserID ()
-{
-    llvm_unreachable("Windows does not support uid");
-}
-
-uint32_t
-Host::GetGroupID ()
-{
-    llvm_unreachable("Windows does not support gid");
-    return 0;
-}
-
-uint32_t
-Host::GetEffectiveUserID ()
-{
-    llvm_unreachable("Windows does not support euid");
-    return 0;
-}
-
-uint32_t
-Host::GetEffectiveGroupID ()
-{
-    llvm_unreachable("Windows does not support egid");
-    return 0;
-}
-
 uint32_t
 Host::FindProcesses (const ProcessInstanceInfoMatch &match_info, ProcessInstanceInfoList &process_infos)
 {

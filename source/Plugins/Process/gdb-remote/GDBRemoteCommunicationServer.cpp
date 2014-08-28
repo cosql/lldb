@@ -1328,6 +1328,9 @@ CreateProcessInfoResponse_DebugServerStyle (const ProcessInstanceInfo &proc_info
     const ArchSpec &proc_arch = proc_info.GetArchitecture();
     if (proc_arch.IsValid())
     {
+        const llvm::Triple &proc_triple = proc_arch.GetTriple();
+#if defined(__APPLE__)
+        // We'll send cputype/cpusubtype.
         const uint32_t cpu_type = proc_arch.GetMachOCPUType();
         if (cpu_type != 0)
             response.Printf ("cputype:%" PRIx32 ";", cpu_type);
@@ -1335,12 +1338,15 @@ CreateProcessInfoResponse_DebugServerStyle (const ProcessInstanceInfo &proc_info
         const uint32_t cpu_subtype = proc_arch.GetMachOCPUSubType();
         if (cpu_subtype != 0)
             response.Printf ("cpusubtype:%" PRIx32 ";", cpu_subtype);
+
         
-        const llvm::Triple &proc_triple = proc_arch.GetTriple();
         const std::string vendor = proc_triple.getVendorName ();
         if (!vendor.empty ())
             response.Printf ("vendor:%s;", vendor.c_str ());
-
+#else
+        // We'll send the triple.
+        response.Printf ("triple:%s;", proc_triple.getTriple().c_str ());
+#endif
         std::string ostype = proc_triple.getOSName ();
         // Adjust so ostype reports ios for Apple/ARM and Apple/ARM64.
         if (proc_triple.getVendor () == llvm::Triple::Apple)
@@ -1538,19 +1544,21 @@ GDBRemoteCommunicationServer::Handle_qsProcessInfo (StringExtractorGDBRemote &pa
 GDBRemoteCommunication::PacketResult
 GDBRemoteCommunicationServer::Handle_qUserName (StringExtractorGDBRemote &packet)
 {
+#if !defined(LLDB_DISABLE_POSIX)
     // Packet format: "qUserName:%i" where %i is the uid
     packet.SetFilePos(::strlen ("qUserName:"));
     uint32_t uid = packet.GetU32 (UINT32_MAX);
     if (uid != UINT32_MAX)
     {
         std::string name;
-        if (Host::GetUserName (uid, name))
+        if (HostInfo::LookupUserName(uid, name))
         {
             StreamString response;
             response.PutCStringAsRawHex8 (name.c_str());
             return SendPacketNoLock (response.GetData(), response.GetSize());
         }
     }
+#endif
     return SendErrorResponse (5);
 
 }
@@ -1558,19 +1566,21 @@ GDBRemoteCommunicationServer::Handle_qUserName (StringExtractorGDBRemote &packet
 GDBRemoteCommunication::PacketResult
 GDBRemoteCommunicationServer::Handle_qGroupName (StringExtractorGDBRemote &packet)
 {
+#if !defined(LLDB_DISABLE_POSIX)
     // Packet format: "qGroupName:%i" where %i is the gid
     packet.SetFilePos(::strlen ("qGroupName:"));
     uint32_t gid = packet.GetU32 (UINT32_MAX);
     if (gid != UINT32_MAX)
     {
         std::string name;
-        if (Host::GetGroupName (gid, name))
+        if (HostInfo::LookupGroupName(gid, name))
         {
             StreamString response;
             response.PutCStringAsRawHex8 (name.c_str());
             return SendPacketNoLock (response.GetData(), response.GetSize());
         }
     }
+#endif
     return SendErrorResponse (6);
 }
 

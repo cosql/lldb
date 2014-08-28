@@ -91,25 +91,6 @@ public:
                                  lldb::pid_t pid,
                                  bool monitor_signals);
 
-    static const char *
-    GetUserName (uint32_t uid, std::string &user_name);
-    
-    static const char *
-    GetGroupName (uint32_t gid, std::string &group_name);
-    
-    static uint32_t
-    GetUserID ();
-    
-    static uint32_t
-    GetGroupID ();
-
-    static uint32_t
-    GetEffectiveUserID ();
-
-    static uint32_t
-    GetEffectiveGroupID ();
-
-
     enum SystemLogType
     {
         eSystemLogWarning,
@@ -261,27 +242,6 @@ public:
     SetShortThreadName (lldb::pid_t pid, lldb::tid_t tid, const char *name, size_t len);
 
     //------------------------------------------------------------------
-    /// Gets the FileSpec of the user profile directory.  On Posix-platforms
-    /// this is ~, and on windows this is generally something like
-    /// C:\Users\Alice.
-    ///
-    /// @return
-    ///     \b A file spec with the path to the user's home directory.
-    //------------------------------------------------------------------
-    static FileSpec
-    GetUserProfileFileSpec ();
-
-    //------------------------------------------------------------------
-    /// Gets the FileSpec of the current process (the process that
-    /// that is running the LLDB code).
-    ///
-    /// @return
-    ///     \b A file spec with the program name.
-    //------------------------------------------------------------------
-    static FileSpec
-    GetProgramFileSpec ();
-
-    //------------------------------------------------------------------
     /// Given an address in the current process (the process that
     /// is running the LLDB code), return the name of the module that
     /// it comes from. This can be useful when you need to know the
@@ -298,8 +258,6 @@ public:
     //------------------------------------------------------------------
     static FileSpec
     GetModuleFileSpecForHostAddress (const void *host_addr);
-
-
     
     //------------------------------------------------------------------
     /// If you have an executable that is in a bundle and want to get
@@ -339,28 +297,6 @@ public:
     //------------------------------------------------------------------
     static bool
     ResolveExecutableInBundle (FileSpec &file);
-
-    //------------------------------------------------------------------
-    /// Find a resource files that are related to LLDB.
-    ///
-    /// Operating systems have different ways of storing shared 
-    /// libraries and related resources. This function abstracts the
-    /// access to these paths.
-    ///
-    /// @param[in] path_type
-    ///     The type of LLDB resource path you are looking for. If the
-    ///     enumeration ends with "Dir", then only the \a file_spec's 
-    ///     directory member gets filled in.
-    ///
-    /// @param[in] file_spec
-    ///     A file spec that gets filled in with the appropriate path.
-    ///
-    /// @return
-    ///     \b true if \a resource_path was resolved, \a false otherwise.
-    //------------------------------------------------------------------
-    static bool
-    GetLLDBPath (lldb::PathType path_type,
-                 FileSpec &file_spec);
 
     //------------------------------------------------------------------
     /// Set a string that can be displayed if host application crashes.
@@ -435,25 +371,6 @@ public:
     
     static size_t
     GetEnvironment (StringList &env);
-
-    enum DynamicLibraryOpenOptions 
-    {
-        eDynamicLibraryOpenOptionLazy           = (1u << 0),  // Lazily resolve symbols in this dynamic library
-        eDynamicLibraryOpenOptionLocal          = (1u << 1),  // Only open a shared library with local access (hide it from the global symbol namespace)
-        eDynamicLibraryOpenOptionLimitGetSymbol = (1u << 2)   // DynamicLibraryGetSymbol calls on this handle will only return matches from this shared library
-    };
-    static void *
-    DynamicLibraryOpen (const FileSpec &file_spec, 
-                        uint32_t options,
-                        Error &error);
-
-    static Error
-    DynamicLibraryClose (void *dynamic_library_handle);
-
-    static void *
-    DynamicLibraryGetSymbol (void *dynamic_library_handle, 
-                             const char *symbol_name, 
-                             Error &error);
 };
 
 } // namespace lldb_private

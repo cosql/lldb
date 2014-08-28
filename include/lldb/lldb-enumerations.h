@@ -157,13 +157,16 @@ namespace lldb {
 
     //----------------------------------------------------------------------
     // Register numbering types
+    // See RegisterContext::ConvertRegisterKindToRegisterNumber to convert
+    // any of these to the lldb internal register numbering scheme 
+    // (eRegisterKindLLDB).
     //----------------------------------------------------------------------
     typedef enum RegisterKind
     {
         eRegisterKindGCC = 0,    // the register numbers seen in eh_frame
         eRegisterKindDWARF,      // the register numbers seen DWARF
         eRegisterKindGeneric,    // insn ptr reg, stack ptr reg, etc not specific to any particular target
-        eRegisterKindGDB,        // the register numbers gdb uses (matches stabs numbers?)
+        eRegisterKindGDB,        // the register numbers gdb uses (matches stabs numbers)
         eRegisterKindLLDB,       // lldb's internal register numbers
         kNumRegisterKinds
     } RegisterKind;
@@ -379,6 +382,9 @@ namespace lldb {
         eLanguageTypeOCaml           = 0x001b,   ///< OCaml.
         eLanguageTypeRust            = 0x001c,   ///< Rust.
         eLanguageTypeC11             = 0x001d,   ///< ISO C:2011.
+        eLanguageTypeSwift           = 0x001e,   ///< Swift.
+        eLanguageTypeJulia           = 0x001f,   ///< Julia.
+        eLanguageTypeDylan           = 0x0020,   ///< Dylan.
         eNumLanguageTypes
     } LanguageType;
 

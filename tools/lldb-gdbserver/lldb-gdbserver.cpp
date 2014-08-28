@@ -150,20 +150,6 @@ dump_available_platforms (FILE *output_file)
 }
 
 static void
-initialize_lldb_gdbserver ()
-{
-    PluginManager::Initialize ();
-    Debugger::Initialize (NULL);
-}
-
-static void
-terminate_lldb_gdbserver ()
-{
-    Debugger::Terminate();
-    PluginManager::Terminate ();
-}
-
-static void
 run_lldb_commands (const lldb::DebuggerSP &debugger_sp, const std::vector<std::string> lldb_commands)
 {
     for (const auto &lldb_command : lldb_commands)
@@ -508,7 +494,7 @@ main (int argc, char *argv[])
     std::string named_pipe_path;
     bool reverse_connect = false;
 
-    initialize_lldb_gdbserver ();
+    Debugger::Initialize (NULL);
 
     lldb::DebuggerSP debugger_sp = Debugger::CreateInstance ();
 
@@ -682,7 +668,7 @@ main (int argc, char *argv[])
 
     ConnectToRemote (gdb_server, reverse_connect, host_and_port, progname, named_pipe_path.c_str ());
 
-    terminate_lldb_gdbserver ();
+    Debugger::Terminate ();
 
     fprintf(stderr, "lldb-gdbserver exiting...\n");
 

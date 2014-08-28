@@ -34,7 +34,7 @@
 #include "lldb/DataFormatters/DataVisualization.h"
 #include "lldb/DataFormatters/FormatManager.h"
 #include "lldb/DataFormatters/TypeSummary.h"
-#include "lldb/Host/DynamicLibrary.h"
+#include "lldb/Host/HostInfo.h"
 #include "lldb/Host/Terminal.h"
 #include "lldb/Interpreter/CommandInterpreter.h"
 #include "lldb/Interpreter/OptionValueSInt64.h"
@@ -52,6 +52,8 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Utility/AnsiTerminal.h"
+
+#include "llvm/Support/DynamicLibrary.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -412,10 +414,10 @@ Debugger::LoadPlugin (const FileSpec& spec, Error& error)
 {
     if (g_load_plugin_callback)
     {
-        lldb::DynamicLibrarySP dynlib_sp = g_load_plugin_callback (shared_from_this(), spec, error);
-        if (dynlib_sp)
+        llvm::sys::DynamicLibrary dynlib = g_load_plugin_callback (shared_from_this(), spec, error);
+        if (dynlib.isValid())
         {
-            m_loaded_plugins.push_back(dynlib_sp);
+            m_loaded_plugins.push_back(dynlib);
             return true;
         }
     }
@@ -492,7 +494,7 @@ Debugger::InstanceInitialize ()
     const bool find_files = true;
     const bool find_other = true;
     char dir_path[PATH_MAX];
-    if (Host::GetLLDBPath (ePathTypeLLDBSystemPlugins, dir_spec))
+    if (HostInfo::GetLLDBPath(ePathTypeLLDBSystemPlugins, dir_spec))
     {
         if (dir_spec.Exists() && dir_spec.GetPath(dir_path, sizeof(dir_path)))
         {
@@ -504,8 +506,8 @@ Debugger::InstanceInitialize ()
                                           this);
         }
     }
-    
-    if (Host::GetLLDBPath (ePathTypeLLDBUserPlugins, dir_spec))
+
+    if (HostInfo::GetLLDBPath(ePathTypeLLDBUserPlugins, dir_spec))
     {
         if (dir_spec.Exists() && dir_spec.GetPath(dir_path, sizeof(dir_path)))
         {

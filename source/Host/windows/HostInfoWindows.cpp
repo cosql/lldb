@@ -15,6 +15,8 @@
 
 using namespace lldb_private;
 
+FileSpec HostInfoWindows::m_program_filespec;
+
 size_t
 HostInfoWindows::GetPageSize()
 {
@@ -76,5 +78,35 @@ HostInfoWindows::GetHostname(std::string &s)
         return false;
 
     s.assign(buffer, buffer + dwSize);
+    return true;
+}
+
+FileSpec
+HostInfoWindows::GetProgramFileSpec()
+{
+    static bool is_initialized = false;
+    if (!is_initialized)
+    {
+        is_initialized = true;
+
+        std::vector<char> buffer(PATH_MAX);
+        ::GetModuleFileName(NULL, &buffer[0], buffer.size());
+        m_program_filespec.SetFile(&buffer[0], false);
+    }
+    return m_program_filespec;
+}
+
+bool
+HostInfoWindows::ComputePythonDirectory(FileSpec &file_spec)
+{
+    FileSpec lldb_file_spec;
+    if (!GetLLDBPath(lldb::ePathTypeLLDBShlibDir, lldb_file_spec))
+        return false;
+
+    char raw_path[PATH_MAX];
+    lldb_file_spec.AppendPathComponent("../lib/site-packages");
+    lldb_file_spec.GetPath(raw_path, sizeof(raw_path));
+
+    file_spec.GetDirectory().SetCString(raw_path);
     return true;
 }
