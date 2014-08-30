@@ -66,6 +66,7 @@
 #include "lldb/Host/FileSpec.h"
 #include "lldb/Host/FileSystem.h"
 #include "lldb/Host/Mutex.h"
+#include "lldb/lldb-private-forward.h"
 #include "lldb/Target/FileAction.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/ProcessLaunchInfo.h"
@@ -131,7 +132,18 @@ Host::StartMonitoringChildProcess
     info_ptr->monitor_signals = monitor_signals;
     
     char thread_name[256];
-    ::snprintf (thread_name, sizeof(thread_name), "<lldb.host.wait4(pid=%" PRIu64 ")>", pid);
+
+    if (Host::MAX_THREAD_NAME_LENGTH <= 16)
+    {
+        // On some platforms, the thread name is limited to 16 characters.  We need to
+        // abbreviate there or the pid info would get truncated.
+        ::snprintf (thread_name, sizeof(thread_name), "wait4(%" PRIu64 ")", pid);
+    }
+    else
+    {
+        ::snprintf (thread_name, sizeof(thread_name), "<lldb.host.wait4(pid=%" PRIu64 ")>", pid);
+    }
+
     thread = ThreadCreate (thread_name,
                            MonitorChildProcessThreadFunction,
                            info_ptr,
@@ -1348,6 +1360,17 @@ lldb::pid_t
 Host::LaunchApplication (const FileSpec &app_file_spec)
 {
     return LLDB_INVALID_PROCESS_ID;
+}
+
+#endif
+
+#if !defined (__linux__) && !defined (__FreeBSD__) && !defined (__NetBSD__)
+
+const lldb_private::UnixSignalsSP&
+Host::GetUnixSignals ()
+{
+    static UnixSignalsSP s_unix_signals_sp (new UnixSignals ());
+    return s_unix_signals_sp;
 }
 
 #endif
