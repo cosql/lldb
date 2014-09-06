@@ -68,6 +68,9 @@ public:
     bool
     GetDisableMemoryCache() const;
 
+    uint64_t
+    GetMemoryCacheLineSize () const;
+
     Args
     GetExtraStartupCommands () const;
 
@@ -2919,6 +2922,9 @@ public:
         Error return_error ("Sending an event is not supported for this process.");
         return return_error;
     }
+    
+    lldb::ThreadCollectionSP
+    GetHistoryThreads(lldb::addr_t addr);
 
 protected:
 

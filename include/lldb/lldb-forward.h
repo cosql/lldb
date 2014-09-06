@@ -116,6 +116,7 @@ class   Log;
 class   LogChannel;
 class   Mangled;
 class   Materializer;
+class   MemoryHistory;
 class   Module;
 class   ModuleList;
 class   ModuleSpec;
@@ -225,6 +226,7 @@ class   QueueImpl;
 class   Target;
 class   TargetList;
 class   Thread;
+class   ThreadCollection;
 class   ThreadList;
 class   ThreadPlan;
 class   ThreadPlanBase;
@@ -246,8 +248,10 @@ class   TypeListImpl;
 class   TypeMemberImpl;
 class   TypeEnumMemberImpl;
 class   TypeEnumMemberListImpl;
+class   TypeFormatImpl;
 class   TypeNameSpecifierImpl;
 class   TypePair;
+class   TypeValidatorImpl;
 class   UUID;
 class   UnixSignals;
 class   Unwind;
@@ -256,7 +260,6 @@ class   UnwindPlan;
 class   UnwindTable;
 class   VMRange;
 class   Value;
-class   TypeFormatImpl;
 class   ValueList;
 class   ValueObject;
 class   ValueObjectChild;
@@ -316,6 +319,7 @@ namespace lldb {
     typedef std::shared_ptr<lldb_private::LineTable> LineTableSP;
     typedef std::shared_ptr<lldb_private::Listener> ListenerSP;
     typedef std::shared_ptr<lldb_private::LogChannel> LogChannelSP;
+    typedef std::shared_ptr<lldb_private::MemoryHistory> MemoryHistorySP;
     typedef std::shared_ptr<lldb_private::Module> ModuleSP;
     typedef std::weak_ptr<lldb_private::Module> ModuleWP;
     typedef std::shared_ptr<lldb_private::ObjectFile> ObjectFileSP;
@@ -379,6 +383,7 @@ namespace lldb {
     typedef std::weak_ptr<lldb_private::Target> TargetWP;
     typedef std::shared_ptr<lldb_private::Thread> ThreadSP;
     typedef std::weak_ptr<lldb_private::Thread> ThreadWP;
+    typedef std::shared_ptr<lldb_private::ThreadCollection> ThreadCollectionSP;
     typedef std::shared_ptr<lldb_private::ThreadPlan> ThreadPlanSP;
     typedef std::shared_ptr<lldb_private::ThreadPlanTracer> ThreadPlanTracerSP;
     typedef std::shared_ptr<lldb_private::Type> TypeSP;
@@ -390,6 +395,7 @@ namespace lldb {
     typedef std::shared_ptr<lldb_private::TypeFormatImpl> TypeFormatImplSP;
     typedef std::shared_ptr<lldb_private::TypeNameSpecifierImpl> TypeNameSpecifierImplSP;
     typedef std::shared_ptr<lldb_private::TypeSummaryImpl> TypeSummaryImplSP;
+    typedef std::shared_ptr<lldb_private::TypeValidatorImpl> TypeValidatorImplSP;
 #ifndef LLDB_DISABLE_PYTHON
     typedef std::shared_ptr<lldb_private::ScriptedSyntheticChildren> ScriptedSyntheticChildrenSP;
 #endif
