@@ -15,10 +15,20 @@
 
 // Project includes
 #include "lldb/DataFormatters/TypeValidator.h"
-#import "lldb/Core/StreamString.h"
+#include "lldb/Core/StreamString.h"
 
 using namespace lldb;
 using namespace lldb_private;
+
+TypeValidatorImpl::TypeValidatorImpl(const Flags &flags)
+    : m_flags(flags)
+    , m_my_revision(0)
+{
+}
+
+TypeValidatorImpl::~TypeValidatorImpl()
+{
+}
 
 TypeValidatorImpl::ValidationResult
 TypeValidatorImpl::Success ()
@@ -36,6 +46,10 @@ TypeValidatorImpl_CXX::TypeValidatorImpl_CXX (ValidatorFunction f, std::string d
     TypeValidatorImpl(flags),
     m_description(d),
     m_validator_function(f)
+{
+}
+
+TypeValidatorImpl_CXX::~TypeValidatorImpl_CXX()
 {
 }
 
