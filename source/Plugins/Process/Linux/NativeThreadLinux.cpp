@@ -18,8 +18,12 @@
 #include "lldb/Core/State.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Host/HostInfo.h"
+#include "lldb/Host/HostNativeThread.h"
 #include "lldb/lldb-enumerations.h"
 #include "lldb/lldb-private-log.h"
+
+#include "llvm/ADT/SmallString.h"
+
 #include "Plugins/Process/Utility/RegisterContextLinux_arm64.h"
 #include "Plugins/Process/Utility/RegisterContextLinux_i386.h"
 #include "Plugins/Process/Utility/RegisterContextLinux_x86_64.h"
@@ -57,7 +61,7 @@ NativeThreadLinux::NativeThreadLinux (NativeProcessLinux *process, lldb::tid_t t
 {
 }
 
-const char *
+std::string
 NativeThreadLinux::GetName()
 {
     NativeProcessProtocolSP process_sp = m_process_wp.lock ();
@@ -65,7 +69,9 @@ NativeThreadLinux::GetName()
         return "<unknown: no process>";
 
     // const NativeProcessLinux *const process = reinterpret_cast<NativeProcessLinux*> (process_sp->get ());
-    return Host::GetThreadName (process_sp->GetID (), GetID ()).c_str ();
+    llvm::SmallString<32> thread_name;
+    HostNativeThread::GetName(GetID(), thread_name);
+    return thread_name.c_str();
 }
 
 lldb::StateType
@@ -107,6 +113,7 @@ NativeThreadLinux::GetStopReason (ThreadStopInfo &stop_info)
         }
         return false;
     }
+    llvm_unreachable("unhandled StateType!");
 }
 
 lldb_private::NativeRegisterContextSP
@@ -252,6 +259,25 @@ NativeThreadLinux::SetStoppedBySignal (uint32_t signo)
     m_stop_info.reason = StopReason::eStopReasonSignal;
     m_stop_info.details.signal.signo = signo;
 }
+
+bool
+NativeThreadLinux::IsStopped (int *signo)
+{
+    if (!StateIsStoppedState (m_state, false))
+        return false;
+
+    // If we are stopped by a signal, return the signo.
+    if (signo &&
+        m_state == StateType::eStateStopped &&
+        m_stop_info.reason == StopReason::eStopReasonSignal)
+    {
+        *signo = m_stop_info.details.signal.signo;
+    }
+
+    // Regardless, we are stopped.
+    return true;
+}
+
 
 void
 NativeThreadLinux::SetStoppedByExec ()

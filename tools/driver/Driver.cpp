@@ -39,6 +39,10 @@
 #include "lldb/API/SBThread.h"
 #include "lldb/API/SBProcess.h"
 
+#if !defined(__APPLE__)
+#include "llvm/Support/DataTypes.h"
+#endif
+
 using namespace lldb;
 
 static void reset_stdin_termios ();

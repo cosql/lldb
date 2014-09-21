@@ -252,6 +252,25 @@ SBType::GetFunctionArgumentTypes ()
     return sb_type_list;
 }
 
+uint32_t
+SBType::GetNumberOfMemberFunctions ()
+{
+    if (IsValid())
+    {
+        return m_opaque_sp->GetClangASTType(true).GetNumMemberFunctions();
+    }
+    return 0;
+}
+
+lldb::SBTypeMemberFunction
+SBType::GetMemberFunctionAtIndex (uint32_t idx)
+{
+    SBTypeMemberFunction sb_func_type;
+    if (IsValid())
+        sb_func_type.reset(new TypeMemberFunctionImpl(m_opaque_sp->GetClangASTType(true).GetMemberFunctionAtIndex(idx)));
+    return sb_func_type;
+}
+
 lldb::SBType
 SBType::GetUnqualifiedType()
 {
@@ -683,4 +702,122 @@ const TypeMemberImpl &
 SBTypeMember::ref () const
 {
     return *m_opaque_ap.get();
+}
+
+SBTypeMemberFunction::SBTypeMemberFunction() :
+m_opaque_sp()
+{
+}
+
+SBTypeMemberFunction::~SBTypeMemberFunction()
+{
+}
+
+SBTypeMemberFunction::SBTypeMemberFunction (const SBTypeMemberFunction& rhs) :
+    m_opaque_sp(rhs.m_opaque_sp)
+{
+}
+
+lldb::SBTypeMemberFunction&
+SBTypeMemberFunction::operator = (const lldb::SBTypeMemberFunction& rhs)
+{
+    if (this != &rhs)
+        m_opaque_sp = rhs.m_opaque_sp;
+    return *this;
+}
+
+bool
+SBTypeMemberFunction::IsValid() const
+{
+    return m_opaque_sp.get();
+}
+
+const char *
+SBTypeMemberFunction::GetName ()
+{
+    if (m_opaque_sp)
+        return m_opaque_sp->GetName().GetCString();
+    return NULL;
+}
+
+SBType
+SBTypeMemberFunction::GetType ()
+{
+    SBType sb_type;
+    if (m_opaque_sp)
+    {
+        sb_type.SetSP(lldb::TypeImplSP(new TypeImpl(m_opaque_sp->GetType())));
+    }
+    return sb_type;
+}
+
+lldb::SBType
+SBTypeMemberFunction::GetReturnType ()
+{
+    SBType sb_type;
+    if (m_opaque_sp)
+    {
+        sb_type.SetSP(lldb::TypeImplSP(new TypeImpl(m_opaque_sp->GetReturnType())));
+    }
+    return sb_type;
+}
+
+uint32_t
+SBTypeMemberFunction::GetNumberOfArguments ()
+{
+    if (m_opaque_sp)
+        return m_opaque_sp->GetNumArguments();
+    return 0;
+}
+
+lldb::SBType
+SBTypeMemberFunction::GetArgumentTypeAtIndex (uint32_t i)
+{
+    SBType sb_type;
+    if (m_opaque_sp)
+    {
+        sb_type.SetSP(lldb::TypeImplSP(new TypeImpl(m_opaque_sp->GetArgumentAtIndex(i))));
+    }
+    return sb_type;
+}
+
+lldb::MemberFunctionKind
+SBTypeMemberFunction::GetKind ()
+{
+    if (m_opaque_sp)
+        return m_opaque_sp->GetKind();
+    return lldb::eMemberFunctionKindUnknown;
+    
+}
+
+bool
+SBTypeMemberFunction::GetDescription (lldb::SBStream &description,
+                                      lldb::DescriptionLevel description_level)
+{
+    Stream &strm = description.ref();
+    
+    if (m_opaque_sp)
+        return m_opaque_sp->GetDescription(strm);
+    
+    return false;
+}
+
+void
+SBTypeMemberFunction::reset(TypeMemberFunctionImpl *type_member_impl)
+{
+    m_opaque_sp.reset(type_member_impl);
+}
+
+TypeMemberFunctionImpl &
+SBTypeMemberFunction::ref ()
+{
+    if (!m_opaque_sp)
+        m_opaque_sp.reset (new TypeMemberFunctionImpl());
+    return *m_opaque_sp.get();
+}
+
+const TypeMemberFunctionImpl &
+SBTypeMemberFunction::ref () const
+{
+    return *m_opaque_sp.get();
 }

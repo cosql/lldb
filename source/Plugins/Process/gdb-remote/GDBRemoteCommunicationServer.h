@@ -463,6 +463,9 @@ protected:
     PacketResult
     Handle_vAttach (StringExtractorGDBRemote &packet);
 
+    PacketResult
+    Handle_qThreadStopInfo (StringExtractorGDBRemote &packet);
+
     void
     SetCurrentThreadID (lldb::tid_t tid);
 
@@ -511,9 +514,9 @@ private:
         return !m_is_platform;
     }
 
-    /// Launch a process from lldb-gdbserver
+    /// Launch an inferior process from lldb-gdbserver
     lldb_private::Error
-    LaunchDebugServerProcess ();
+    LaunchProcessForDebugging ();
 
     /// Launch a process from lldb-platform
     lldb_private::Error

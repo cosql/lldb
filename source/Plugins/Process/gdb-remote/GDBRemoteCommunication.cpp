@@ -26,6 +26,7 @@
 #include "lldb/Host/Host.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Host/Socket.h"
+#include "lldb/Host/ThreadLauncher.h"
 #include "lldb/Host/TimeValue.h"
 #include "lldb/Target/Process.h"
 
@@ -153,7 +154,6 @@ GDBRemoteCommunication::GDBRemoteCommunication(const char *comm_name,
     m_history (512),
     m_send_acks (true),
     m_is_platform (is_platform),
-    m_listen_thread (LLDB_INVALID_HOST_THREAD),
     m_listen_url ()
 {
 }
@@ -227,9 +227,23 @@ GDBRemoteCommunication::SendPacketNoLock (const char *payload, size_t payload_le
 
         Log *log (ProcessGDBRemoteLog::GetLogIfAllCategoriesSet (GDBR_LOG_PACKETS));
         ConnectionStatus status = eConnectionStatusSuccess;
-        size_t bytes_written = Write (packet.GetData(), packet.GetSize(), status, NULL);
+        const char *packet_data = packet.GetData();
+        const size_t packet_length = packet.GetSize();
+        size_t bytes_written = Write (packet_data, packet_length, status, NULL);
         if (log)
         {
+            size_t binary_start_offset = 0;
+            if (strncmp(packet_data, "$vFile:pwrite:", strlen("$vFile:pwrite:")) == 0)
+            {
+                const char *first_comma = strchr(packet_data, ',');
+                if (first_comma)
+                {
+                    const char *second_comma = strchr(first_comma + 1, ',');
+                    if (second_comma)
+                        binary_start_offset = second_comma - packet_data + 1;
+                }
+            }
+
             // If logging was just enabled and we have history, then dump out what
             // we have to the log so we get the historical context. The Dump() call that
             // logs all of the packet will set a boolean so that we don't dump this more
@@ -237,13 +251,27 @@ GDBRemoteCommunication::SendPacketNoLock (const char *payload, size_t payload_le
             if (!m_history.DidDumpToLog ())
                 m_history.Dump (log);
 
-            log->Printf("<%4" PRIu64 "> send packet: %.*s", (uint64_t)bytes_written, (int)packet.GetSize(), packet.GetData());
+            if (binary_start_offset)
+            {
+                StreamString strm;
+                // Print non binary data header
+                strm.Printf("<%4" PRIu64 "> send packet: %.*s", (uint64_t)bytes_written, (int)binary_start_offset, packet_data);
+                const uint8_t *p;
+                // Print binary data exactly as sent
+                for (p = (uint8_t*)packet_data + binary_start_offset; *p != '#'; ++p)
+                    strm.Printf("\\x%2.2x", *p);
+                // Print the checksum
+                strm.Printf("%*s", (int)3, p);
+                log->PutCString(strm.GetString().c_str());
+            }
+            else
+                log->Printf("<%4" PRIu64 "> send packet: %.*s", (uint64_t)bytes_written, (int)packet_length, packet_data);
         }
 
-        m_history.AddPacket (packet.GetString(), packet.GetSize(), History::ePacketTypeSend, bytes_written);
+        m_history.AddPacket (packet.GetString(), packet_length, History::ePacketTypeSend, bytes_written);
 
 
-        if (bytes_written == packet.GetSize())
+        if (bytes_written == packet_length)
         {
             if (GetSendAcks ())
                 return GetAck ();
@@ -253,7 +281,7 @@ GDBRemoteCommunication::SendPacketNoLock (const char *payload, size_t payload_le
         else
         {
             if (log)
-                log->Printf ("error: failed to send packet: %.*s", (int)packet.GetSize(), packet.GetData());
+                log->Printf ("error: failed to send packet: %.*s", (int)packet_length, packet_data);
         }
     }
     return PacketResult::ErrorSendFailed;
@@ -606,7 +634,7 @@ Error
 GDBRemoteCommunication::StartListenThread (const char *hostname, uint16_t port)
 {
     Error error;
-    if (IS_VALID_LLDB_HOST_THREAD(m_listen_thread))
+    if (m_listen_thread.GetState() == eThreadStateRunning)
     {
         error.SetErrorString("listen thread already running");
     }
@@ -619,7 +647,7 @@ GDBRemoteCommunication::StartListenThread (const char *hostname, uint16_t port)
             snprintf(listen_url, sizeof(listen_url), "listen://%i", port);
         m_listen_url = listen_url;
         SetConnection(new ConnectionFileDescriptor());
-        m_listen_thread = Host::ThreadCreate (listen_url, GDBRemoteCommunication::ListenThread, this, &error);
+        m_listen_thread = ThreadLauncher::LaunchThread(listen_url, GDBRemoteCommunication::ListenThread, this, &error);
     }
     return error;
 }
@@ -627,10 +655,10 @@ GDBRemoteCommunication::StartListenThread (const char *hostname, uint16_t port)
 bool
 GDBRemoteCommunication::JoinListenThread ()
 {
-    if (IS_VALID_LLDB_HOST_THREAD(m_listen_thread))
+    if (m_listen_thread.GetState() == eThreadStateRunning)
     {
-        Host::ThreadJoin(m_listen_thread, NULL, NULL);
-        m_listen_thread = LLDB_INVALID_HOST_THREAD;
+        m_listen_thread.Join(nullptr);
+        m_listen_thread.Reset();
     }
     return true;
 }

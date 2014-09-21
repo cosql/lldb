@@ -162,7 +162,7 @@ public:
     GetNumberOfFunctionArguments () const;
     
     ClangASTType
-    GetFunctionArgumentAtIndex (const size_t index);
+    GetFunctionArgumentAtIndex (const size_t index) const;
     
     bool
     IsVariadicFunctionType () const;
@@ -329,10 +329,16 @@ public:
     GetFunctionArgumentCount () const;
 
     ClangASTType
-    GetFunctionArgumentTypeAtIndex (size_t idx);
+    GetFunctionArgumentTypeAtIndex (size_t idx) const;
 
     ClangASTType
     GetFunctionReturnType () const;
+    
+    size_t
+    GetNumMemberFunctions () const;
+    
+    TypeMemberFunctionImpl
+    GetMemberFunctionAtIndex (size_t idx);
     
     ClangASTType
     GetLValueReferenceType () const;
