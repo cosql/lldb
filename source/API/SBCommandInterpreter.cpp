@@ -442,6 +442,17 @@ LLDBSwigPythonCreateSyntheticProvider (const char *python_class_name,
                                        const lldb::ValueObjectSP& valobj_sp);
 
 
+extern "C" void*
+LLDBSwigPythonCreateScriptedThreadPlan (const char *python_class_name,
+                                        const char *session_dictionary_name,
+                                        const lldb::ThreadPlanSP& thread_plan_sp);
+
+extern "C" bool
+LLDBSWIGPythonCallThreadPlan (void *implementor,
+                              const char *method_name,
+                              Event *event_sp,
+                              bool &got_error);
+
 extern "C" uint32_t
 LLDBSwigPython_CalculateNumChildren (void *implementor);
 
@@ -468,7 +479,8 @@ LLDBSwigPythonCallCommand (const char *python_function_name,
                            const char *session_dictionary_name,
                            lldb::DebuggerSP& debugger,
                            const char* args,
-                           lldb_private::CommandReturnObject &cmd_retobj);
+                           lldb_private::CommandReturnObject &cmd_retobj,
+                           lldb::ExecutionContextRefSP exe_ctx_ref_sp);
 
 extern "C" bool
 LLDBSwigPythonCallModuleInit (const char *python_module_name,
@@ -539,7 +551,9 @@ SBCommandInterpreter::InitializeSWIG ()
                                                   LLDBSWIGPythonRunScriptKeywordThread,
                                                   LLDBSWIGPythonRunScriptKeywordTarget,
                                                   LLDBSWIGPythonRunScriptKeywordFrame,
-                                                  LLDBSWIGPython_GetDynamicSetting);
+                                                  LLDBSWIGPython_GetDynamicSetting,
+                                                  LLDBSwigPythonCreateScriptedThreadPlan,
+                                                  LLDBSWIGPythonCallThreadPlan);
 #endif
     }
 }

@@ -7,8 +7,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "lldb/lldb-python.h"
-
 // C Includes
 #include <errno.h>
 #include <getopt.h>
@@ -281,7 +279,7 @@ static Error
 StartListenThread (const char *hostname, uint16_t port)
 {
     Error error;
-    if (s_listen_thread.GetState() == eThreadStateRunning)
+    if (s_listen_thread.IsJoinable())
     {
         error.SetErrorString("listen thread already running");
     }
@@ -303,11 +301,8 @@ StartListenThread (const char *hostname, uint16_t port)
 static bool
 JoinListenThread ()
 {
-    if (s_listen_thread.GetState() == eThreadStateRunning)
-    {
+    if (s_listen_thread.IsJoinable())
         s_listen_thread.Join(nullptr);
-        s_listen_thread.Reset();
-    }
     return true;
 }
 

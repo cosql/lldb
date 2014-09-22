@@ -22,7 +22,8 @@ typedef enum StepType
     eStepTypeTraceOver, ///< Single step one instruction, stepping over.
     eStepTypeInto,      ///< Single step into a specified context.
     eStepTypeOver,      ///< Single step over a specified context.
-    eStepTypeOut        ///< Single step out a specified context.
+    eStepTypeOut,       ///< Single step out a specified context.
+    eStepTypeScripted   ///< A step type implemented by the script interpreter.
 } StepType;
 
 //----------------------------------------------------------------------
@@ -239,18 +240,6 @@ typedef enum ExitType {
     eExitTypeSignal,  // The exit status represents the signal number that caused the program to exit (i.e. WIFSIGNALED() was true)
     eExitTypeStop,    // The exit status represents the stop signal that caused the program to exit (i.e. WIFSTOPPED() was true)
 } ExitType;
-
-//----------------------------------------------------------------------
-// State for running threads
-//----------------------------------------------------------------------
-enum ThreadState
-{
-    eThreadStateInvalid,    // The thread does not represent a current or past thread.
-    eThreadStateRunning,    // The thread is currently running.
-    eThreadStateExited,     // The thread's start routine returned normally.
-    eThreadStateCancelling, // The thread has been sent a cancellation request.
-    eThreadStateCancelled   // The thread was cancelled before completing normally.
-};
 
 //----------------------------------------------------------------------
 // Boolean result of running a Type Validator

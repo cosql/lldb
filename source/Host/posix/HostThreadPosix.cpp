@@ -10,8 +10,10 @@
 #include "lldb/Core/Error.h"
 #include "lldb/Host/posix/HostThreadPosix.h"
 
+#include <errno.h>
 #include <pthread.h>
 
+using namespace lldb;
 using namespace lldb_private;
 
 HostThreadPosix::HostThreadPosix()
@@ -31,13 +33,16 @@ Error
 HostThreadPosix::Join(lldb::thread_result_t *result)
 {
     Error error;
-    lldb::thread_result_t thread_result;
-    int err = ::pthread_join(m_thread, &thread_result);
-    error.SetError(err, lldb::eErrorTypePOSIX);
-    if (err == 0)
+    if (IsJoinable())
     {
-        m_state = (m_state == eThreadStateCancelling) ? eThreadStateCancelled : eThreadStateExited;
+        lldb::thread_result_t thread_result;
+        int err = ::pthread_join(m_thread, &thread_result);
+        error.SetError(err, lldb::eErrorTypePOSIX);
     }
+    else
+        error.SetError(EINVAL, eErrorTypePOSIX);
+
+    Reset();
     return error;
 }
 
@@ -45,10 +50,12 @@ Error
 HostThreadPosix::Cancel()
 {
     Error error;
+#ifndef __ANDROID__
     int err = ::pthread_cancel(m_thread);
-    error.SetError(err, lldb::eErrorTypePOSIX);
-    if (err == 0)
-        m_state = eThreadStateCancelling;
+    error.SetError(err, eErrorTypePOSIX);
+#else
+    error.SetErrorString("HostThreadPosix::Cancel() not supported on Android");
+#endif
 
     return error;
 }
@@ -58,6 +65,7 @@ HostThreadPosix::Detach()
 {
     Error error;
     int err = ::pthread_detach(m_thread);
-    error.SetError(err, lldb::eErrorTypePOSIX);
+    error.SetError(err, eErrorTypePOSIX);
+    Reset();
     return error;
 }

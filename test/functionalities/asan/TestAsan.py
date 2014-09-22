@@ -24,6 +24,7 @@ class AsanTestCase(TestBase):
         self.buildDsym (None, compiler)
         self.asan_tests ()
 
+    @expectedFailureFreeBSD("llvm.org/pr21136") # runtimes not yet available by default
     @skipIfRemote
     @dwarf_test
     def test_with_dwarf (self):
@@ -85,6 +86,12 @@ class AsanTestCase(TestBase):
         self.assertEqual(history_thread.frames[1].GetLineEntry().GetLine(), self.line_malloc)
         
         history_thread = threads.GetThreadAtIndex(1)
+        self.assertTrue(history_thread.num_frames >= 2)
+        self.assertEqual(history_thread.frames[1].GetLineEntry().GetFileSpec().GetFilename(), "main.c")
+        self.assertEqual(history_thread.frames[1].GetLineEntry().GetLine(), self.line_free)
+
+        # let's free the container (SBThreadCollection) and see if the SBThreads still live
+        threads = None
         self.assertTrue(history_thread.num_frames >= 2)
         self.assertEqual(history_thread.frames[1].GetLineEntry().GetFileSpec().GetFilename(), "main.c")
         self.assertEqual(history_thread.frames[1].GetLineEntry().GetLine(), self.line_free)
