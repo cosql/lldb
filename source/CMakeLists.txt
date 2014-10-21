@@ -86,6 +86,7 @@ set( LLDB_USED_LIBS
   lldbPluginObjectFilePECOFF
   lldbPluginOSPython
   lldbPluginMemoryHistoryASan
+  lldbPluginInstrumentationRuntimeAddressSanitizer
   )
 
 # Need to export the API in the liblldb.dll for Windows

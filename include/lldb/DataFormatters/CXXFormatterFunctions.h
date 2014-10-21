@@ -474,6 +474,8 @@ namespace lldb_private {
         
         SyntheticChildrenFrontEnd* NSSetSyntheticFrontEndCreator (CXXSyntheticChildren*, lldb::ValueObjectSP);
         
+        SyntheticChildrenFrontEnd* NSIndexPathSyntheticFrontEndCreator (CXXSyntheticChildren*, lldb::ValueObjectSP);
+        
         class LibcxxVectorBoolSyntheticFrontEnd : public SyntheticChildrenFrontEnd
         {
         public:
@@ -721,10 +723,11 @@ namespace lldb_private {
             ~LibcxxStdListSyntheticFrontEnd ();
         private:
             bool
-            HasLoop();
+            HasLoop(size_t);
             
             size_t m_list_capping_size;
             static const bool g_use_loop_detect = true;
+            size_t m_loop_detected;
             lldb::addr_t m_node_address;
             ValueObject* m_head;
             ValueObject* m_tail;

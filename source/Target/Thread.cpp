@@ -943,30 +943,30 @@ Thread::ShouldStop (Event* event_ptr)
         if (over_ride_stop)
             should_stop = false;
 
-        // One other potential problem is that we set up a master plan, then stop in before it is complete - for instance
-        // by hitting a breakpoint during a step-over - then do some step/finish/etc operations that wind up
-        // past the end point condition of the initial plan.  We don't want to strand the original plan on the stack,
-        // This code clears stale plans off the stack.
+    }
 
-        if (should_stop)
+    // One other potential problem is that we set up a master plan, then stop in before it is complete - for instance
+    // by hitting a breakpoint during a step-over - then do some step/finish/etc operations that wind up
+    // past the end point condition of the initial plan.  We don't want to strand the original plan on the stack,
+    // This code clears stale plans off the stack.
+
+    if (should_stop)
+    {
+        ThreadPlan *plan_ptr = GetCurrentPlan();
+        while (!PlanIsBasePlan(plan_ptr))
         {
-            ThreadPlan *plan_ptr = GetCurrentPlan();
-            while (!PlanIsBasePlan(plan_ptr))
-            {
-                bool stale = plan_ptr->IsPlanStale ();
-                ThreadPlan *examined_plan = plan_ptr;
-                plan_ptr = GetPreviousPlan (examined_plan);
+            bool stale = plan_ptr->IsPlanStale ();
+            ThreadPlan *examined_plan = plan_ptr;
+            plan_ptr = GetPreviousPlan (examined_plan);
 
-                if (stale)
-                {
-                    if (log)
-                        log->Printf("Plan %s being discarded in cleanup, it says it is already done.",
-                                    examined_plan->GetName());
-                    DiscardThreadPlansUpToPlan(examined_plan);
-                }
+            if (stale)
+            {
+                if (log)
+                    log->Printf("Plan %s being discarded in cleanup, it says it is already done.",
+                                examined_plan->GetName());
+                DiscardThreadPlansUpToPlan(examined_plan);
             }
         }
-
     }
 
     if (log)
@@ -1690,7 +1690,7 @@ Thread::DumpThreadPlans (Stream *s,
                          bool include_internal,
                          bool ignore_boring_threads) const
 {
-    uint32_t stack_size = m_plan_stack.size();
+    uint32_t stack_size;
 
     if (ignore_boring_threads)
     {
@@ -1860,7 +1860,7 @@ Thread::ReturnFromFrame (lldb::StackFrameSP frame_sp, lldb::ValueObjectSP return
         
         // FIXME: ValueObject::Cast doesn't currently work correctly, at least not for scalars.
         // Turn that back on when that works.
-        if (0 && sc.function != NULL)
+        if (/* DISABLES CODE */ (0) && sc.function != NULL)
         {
             Type *function_type = sc.function->GetType();
             if (function_type)
@@ -2086,6 +2086,7 @@ Thread::StopReasonAsCString (lldb::StopReason reason)
     case eStopReasonExec:          return "exec";
     case eStopReasonPlanComplete:  return "plan complete";
     case eStopReasonThreadExiting: return "thread exiting";
+    case eStopReasonInstrumentation: return "instrumentation break";
     }
 
 
@@ -2165,17 +2166,28 @@ Thread::GetStatus (Stream &strm, uint32_t start_frame, uint32_t num_frames, uint
 }
 
 bool
-Thread::GetDescription (Stream &strm, lldb::DescriptionLevel level, bool print_json)
+Thread::GetDescription (Stream &strm, lldb::DescriptionLevel level, bool print_json_thread, bool print_json_stopinfo)
 {
     DumpUsingSettingsFormat (strm, 0);
     strm.Printf("\n");
 
     StructuredData::ObjectSP thread_info = GetExtendedInfo();
-
-    if (thread_info && print_json)
+    StructuredData::ObjectSP stop_info = m_stop_info_sp->GetExtendedInfo();
+    
+    if (print_json_thread || print_json_stopinfo)
     {
-        thread_info->Dump (strm);
-        strm.Printf("\n");
+        if (thread_info && print_json_thread)
+        {
+            thread_info->Dump (strm);
+            strm.Printf("\n");
+        }
+        
+        if (stop_info && print_json_stopinfo)
+        {
+            stop_info->Dump (strm);
+            strm.Printf("\n");
+        }
+        
         return true;
     }
 

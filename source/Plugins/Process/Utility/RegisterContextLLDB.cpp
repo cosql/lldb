@@ -408,9 +408,13 @@ RegisterContextLLDB::InitializeNonZerothFrame()
 
             if (CheckIfLoopingStack ())
             {
-                UnwindLogMsg ("same CFA address as next frame, assuming the unwind is looping - stopping");
-                m_frame_type = eNotAValidFrame;
-                return;
+                TryFallbackUnwindPlan();
+                if (CheckIfLoopingStack ())
+                {
+                    UnwindLogMsg ("same CFA address as next frame, assuming the unwind is looping - stopping");
+                    m_frame_type = eNotAValidFrame;
+                    return;
+                }
             }
 
             UnwindLogMsg ("initialized frame cfa is 0x%" PRIx64, (uint64_t) m_cfa);
@@ -583,9 +587,13 @@ RegisterContextLLDB::InitializeNonZerothFrame()
 
     if (CheckIfLoopingStack ())
     {
-        UnwindLogMsg ("same CFA address as next frame, assuming the unwind is looping - stopping");
-        m_frame_type = eNotAValidFrame;
-        return;
+        TryFallbackUnwindPlan();
+        if (CheckIfLoopingStack ())
+        {
+            UnwindLogMsg ("same CFA address as next frame, assuming the unwind is looping - stopping");
+            m_frame_type = eNotAValidFrame;
+            return;
+        }
     }
 
     UnwindLogMsg ("initialized frame current pc is 0x%" PRIx64 " cfa is 0x%" PRIx64,
@@ -726,13 +734,17 @@ RegisterContextLLDB::GetFullUnwindPlanForFrame ()
         uint32_t permissions;
         addr_t current_pc_addr = m_current_pc.GetLoadAddress (exe_ctx.GetTargetPtr());
         if (current_pc_addr == 0
-            || (process->GetLoadAddressPermissions (current_pc_addr, permissions)
+            || (process &&
+                process->GetLoadAddressPermissions (current_pc_addr, permissions)
                 && (permissions & ePermissionsExecutable) == 0))
         {
-            unwind_plan_sp.reset (new UnwindPlan (lldb::eRegisterKindGeneric));
-            abi->CreateFunctionEntryUnwindPlan(*unwind_plan_sp);
-            m_frame_type = eNormalFrame;
-            return unwind_plan_sp;
+            if (abi)
+            {
+                unwind_plan_sp.reset (new UnwindPlan (lldb::eRegisterKindGeneric));
+                abi->CreateFunctionEntryUnwindPlan(*unwind_plan_sp);
+                m_frame_type = eNormalFrame;
+                return unwind_plan_sp;
+            }
         }
     }
 
@@ -803,7 +815,7 @@ RegisterContextLLDB::GetFullUnwindPlanForFrame ()
     }
 
     // Typically the NonCallSite UnwindPlan is the unwind created by inspecting the assembly language instructions
-    if (behaves_like_zeroth_frame)
+    if (behaves_like_zeroth_frame && process)
     {
         unwind_plan_sp = func_unwinders_sp->GetUnwindPlanAtNonCallSite (process->GetTarget(), m_thread, m_current_offset_backed_up_one);
         if (unwind_plan_sp && unwind_plan_sp->PlanValidAtAddress (m_current_pc))
@@ -833,7 +845,10 @@ RegisterContextLLDB::GetFullUnwindPlanForFrame ()
 
     // We'd prefer to use an UnwindPlan intended for call sites when we're at a call site but if we've
     // struck out on that, fall back to using the non-call-site assembly inspection UnwindPlan if possible.
-    unwind_plan_sp = func_unwinders_sp->GetUnwindPlanAtNonCallSite (process->GetTarget(), m_thread, m_current_offset_backed_up_one);
+    if (process)
+    {
+        unwind_plan_sp = func_unwinders_sp->GetUnwindPlanAtNonCallSite (process->GetTarget(), m_thread, m_current_offset_backed_up_one);
+    }
     if (unwind_plan_sp && unwind_plan_sp->GetSourcedFromCompiler() == eLazyBoolNo)
     {
         // We probably have an UnwindPlan created by inspecting assembly instructions, and we probably

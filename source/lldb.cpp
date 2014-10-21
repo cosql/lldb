@@ -95,6 +95,7 @@
 #include "Plugins/Process/gdb-remote/ProcessGDBRemote.h"
 #include "Plugins/DynamicLoader/Static/DynamicLoaderStatic.h"
 #include "Plugins/MemoryHistory/asan/MemoryHistoryASan.h"
+#include "Plugins/InstrumentationRuntime/AddressSanitizer/AddressSanitizerRuntime.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -158,6 +159,7 @@ lldb_private::Initialize ()
         JITLoaderGDB::Initialize();
         ProcessElfCore::Initialize();
         MemoryHistoryASan::Initialize();
+        AddressSanitizerRuntime::Initialize();
         
 #if defined (__APPLE__)
         //----------------------------------------------------------------------
@@ -251,6 +253,7 @@ lldb_private::Terminate ()
     JITLoaderGDB::Terminate();
     ProcessElfCore::Terminate();
     MemoryHistoryASan::Terminate();
+    AddressSanitizerRuntime::Terminate();
     
 #if defined (__APPLE__)
     DynamicLoaderMacOSXDYLD::Terminate();
