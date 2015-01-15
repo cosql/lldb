@@ -176,6 +176,7 @@ HostInfoMacOSX::ComputeHeaderDirectory(FileSpec &file_spec)
 bool
 HostInfoMacOSX::ComputePythonDirectory(FileSpec &file_spec)
 {
+#ifndef LLDB_DISABLE_PYTHON
     FileSpec lldb_file_spec;
     if (!GetLLDBPath(lldb::ePathTypeLLDBShlibDir, lldb_file_spec))
         return false;
@@ -200,6 +201,29 @@ HostInfoMacOSX::ComputePythonDirectory(FileSpec &file_spec)
         ::strncat(raw_path, python_version_dir.c_str(), sizeof(raw_path) - strlen(raw_path) - 1);
     }
     file_spec.GetDirectory().SetCString(raw_path);
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool
+HostInfoMacOSX::ComputeClangDirectory(FileSpec &file_spec)
+{
+    FileSpec lldb_file_spec;
+    if (!GetLLDBPath (lldb::ePathTypeLLDBShlibDir, lldb_file_spec))
+        return false;
+    
+    char raw_path[PATH_MAX];
+    lldb_file_spec.GetPath (raw_path, sizeof (raw_path));
+    
+    char *framework_pos = ::strstr (raw_path, "LLDB.framework");
+    if (framework_pos)
+    {
+        framework_pos += strlen("LLDB.framework");
+        ::strncpy (framework_pos, "/Resources/Clang", PATH_MAX - (framework_pos - raw_path));
+    }
+    file_spec.SetFile (raw_path, true);
     return true;
 }
 

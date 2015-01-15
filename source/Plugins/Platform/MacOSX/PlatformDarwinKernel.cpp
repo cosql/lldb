@@ -72,14 +72,14 @@ PlatformDarwinKernel::Terminate ()
     }
 }
 
-Platform*
+PlatformSP
 PlatformDarwinKernel::CreateInstance (bool force, const ArchSpec *arch)
 {
     // This is a special plugin that we don't want to activate just based on an ArchSpec for normal
     // userlnad debugging.  It is only useful in kernel debug sessions and the DynamicLoaderDarwinPlugin
     // (or a user doing 'platform select') will force the creation of this Platform plugin.
     if (force == false)
-        return NULL;
+        return PlatformSP();
 
     bool create = force;
     LazyBool is_ios_debug_session = eLazyBoolCalculate;
@@ -143,8 +143,8 @@ PlatformDarwinKernel::CreateInstance (bool force, const ArchSpec *arch)
         }
     }
     if (create)
-        return new PlatformDarwinKernel (is_ios_debug_session);
-    return NULL;
+        return PlatformSP(new PlatformDarwinKernel (is_ios_debug_session));
+    return PlatformSP();
 }
 
 
@@ -658,12 +658,15 @@ PlatformDarwinKernel::ExamineKextForMatchingUUID (const FileSpec &kext_bundle_pa
     {
         ModuleSpec exe_spec (exe_file);
         exe_spec.GetUUID() = uuid;
-        exe_spec.GetArchitecture() = arch;
+        if (!uuid.IsValid())
+        {
+            exe_spec.GetArchitecture() = arch;
+        }
 
         // First try to create a ModuleSP with the file / arch and see if the UUID matches.
         // If that fails (this exec file doesn't have the correct uuid), don't call GetSharedModule
         // (which may call in to the DebugSymbols framework and therefore can be slow.)
-        ModuleSP module_sp (new Module (exe_file, arch));
+        ModuleSP module_sp (new Module (exe_spec));
         if (module_sp && module_sp->GetObjectFile() && module_sp->MatchesModuleSpec (exe_spec))
         {
             error = ModuleList::GetSharedModule (exe_spec, exe_module_sp, NULL, NULL, NULL);
@@ -691,10 +694,21 @@ void
 PlatformDarwinKernel::CalculateTrapHandlerSymbolNames ()
 {   
     m_trap_handlers.push_back(ConstString ("trap_from_kernel"));
+    m_trap_handlers.push_back(ConstString ("hndl_machine_check"));
     m_trap_handlers.push_back(ConstString ("hndl_double_fault"));
     m_trap_handlers.push_back(ConstString ("hndl_allintrs"));
     m_trap_handlers.push_back(ConstString ("hndl_alltraps"));
     m_trap_handlers.push_back(ConstString ("interrupt"));
+    m_trap_handlers.push_back(ConstString ("fleh_prefabt"));
+    m_trap_handlers.push_back(ConstString ("ExceptionVectorsBase"));
+    m_trap_handlers.push_back(ConstString ("ExceptionVectorsTable"));
+    m_trap_handlers.push_back(ConstString ("fleh_undef"));
+    m_trap_handlers.push_back(ConstString ("fleh_dataabt"));
+    m_trap_handlers.push_back(ConstString ("fleh_irq"));
+    m_trap_handlers.push_back(ConstString ("fleh_decirq"));
+    m_trap_handlers.push_back(ConstString ("fleh_fiq_generic"));
+    m_trap_handlers.push_back(ConstString ("fleh_dec"));
+
 }
 
 #else  // __APPLE__

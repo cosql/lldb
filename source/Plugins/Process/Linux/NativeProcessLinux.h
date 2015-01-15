@@ -21,6 +21,7 @@
 #include "lldb/Core/ArchSpec.h"
 #include "lldb/lldb-types.h"
 #include "lldb/Host/Debug.h"
+#include "lldb/Host/HostThread.h"
 #include "lldb/Host/Mutex.h"
 #include "lldb/Target/MemoryRegionInfo.h"
 
@@ -170,8 +171,8 @@ namespace lldb_private
 
         lldb_private::ArchSpec m_arch;
 
-        lldb::thread_t m_operation_thread;
-        lldb::thread_t m_monitor_thread;
+        HostThread m_operation_thread;
+        HostThread m_monitor_thread;
 
         // current operation which must be executed on the priviliged thread
         void *m_operation;
@@ -187,6 +188,11 @@ namespace lldb_private
         // ordered to stop have signaled their stop.
         std::unordered_set<lldb::tid_t> m_wait_for_stop_tids;
         lldb_private::Mutex m_wait_for_stop_tids_mutex;
+
+        std::unordered_set<lldb::tid_t> m_wait_for_group_stop_tids;
+        lldb::tid_t m_group_stop_signal_tid;
+        int m_group_stop_signal;
+        lldb_private::Mutex m_wait_for_group_stop_tids_mutex;
 
         lldb_private::LazyBool m_supports_mem_region;
         std::vector<MemoryRegionInfo> m_mem_region_cache;
@@ -214,9 +220,9 @@ namespace lldb_private
                     lldb_private::Module *module,
                     char const **argv,
                     char const **envp,
-                    const char *stdin_path,
-                    const char *stdout_path,
-                    const char *stderr_path,
+                    const std::string &stdin_path,
+                    const std::string &stdout_path,
+                    const std::string &stderr_path,
                     const char *working_dir,
                     const lldb_private::ProcessLaunchInfo &launch_info);
 
@@ -225,9 +231,9 @@ namespace lldb_private
             lldb_private::Module *m_module; // The executable image to launch.
             char const **m_argv;            // Process arguments.
             char const **m_envp;            // Process environment.
-            const char *m_stdin_path;       // Redirect stdin or NULL.
-            const char *m_stdout_path;      // Redirect stdout or NULL.
-            const char *m_stderr_path;      // Redirect stderr or NULL.
+            const std::string &m_stdin_path;  // Redirect stdin if not empty.
+            const std::string &m_stdout_path; // Redirect stdout if not empty.
+            const std::string &m_stderr_path; // Redirect stderr if not empty.
             const char *m_working_dir;      // Working directory or NULL.
             const lldb_private::ProcessLaunchInfo &m_launch_info;
         };
@@ -254,9 +260,9 @@ namespace lldb_private
             Module *module,
             char const *argv[],
             char const *envp[],
-            const char *stdin_path,
-            const char *stdout_path,
-            const char *stderr_path,
+            const std::string &stdin_path,
+            const std::string &stdout_path,
+            const std::string &stderr_path,
             const char *working_dir,
             const lldb_private::ProcessLaunchInfo &launch_info,
             Error &error);
@@ -373,6 +379,17 @@ namespace lldb_private
         /// LLDB_INVALID_SIGNAL_NUMBER, deliver that signal to the thread.
         bool
         SingleStep(lldb::tid_t tid, uint32_t signo);
+
+        /// Safely mark all existing threads as waiting for group stop.
+        /// When the final group stop comes in from the set of group stop threads,
+        /// we'll mark the current thread as signaled_thread_tid and set its stop
+        /// reason as the given signo.  All other threads from group stop notification
+        /// will have thread stop reason marked as signaled with no signo.
+        void
+        SetGroupStopTids (lldb::tid_t signaled_thread_tid, int signo);
+
+        void
+        OnGroupStop (lldb::tid_t tid);
 
         lldb_private::Error
         Detach(lldb::tid_t tid);

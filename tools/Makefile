@@ -25,7 +25,7 @@ ifeq ($(HOST_OS),Darwin)
 DIRS += debugserver
 endif
 
-ifeq ($(HOST_OS),Linux)
+ifeq ($(ENABLE_WERROR),0)
 DIRS += lldb-mi
 endif
 

@@ -14,7 +14,9 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <fcntl.h>
+#ifndef __ANDROID__
 #include <execinfo.h>
+#endif
 
 // C++ Includes
 // Other libraries and framework includes
@@ -24,6 +26,9 @@
 #include "lldb/Target/Process.h"
 
 #include "lldb/Host/Host.h"
+#ifdef __ANDROID_NDK__
+#include "lldb/Host/android/Android.h"
+#endif
 #include "lldb/Core/DataBufferHeap.h"
 #include "lldb/Core/DataExtractor.h"
 
@@ -373,33 +378,9 @@ Host::GetProcessInfo (lldb::pid_t pid, ProcessInstanceInfo &process_info)
 }
 
 void
-Host::ThreadCreated (const char *thread_name)
-{
-    if (!Host::SetThreadName (LLDB_INVALID_PROCESS_ID, LLDB_INVALID_THREAD_ID, thread_name))
-    {
-        Host::SetShortThreadName (LLDB_INVALID_PROCESS_ID, LLDB_INVALID_THREAD_ID, thread_name, 16);
-    }
-}
-
-std::string
-Host::GetThreadName (lldb::pid_t pid, lldb::tid_t tid)
-{
-    assert(pid != LLDB_INVALID_PROCESS_ID);
-    assert(tid != LLDB_INVALID_THREAD_ID);
-
-    // Read /proc/$TID/comm file.
-    lldb::DataBufferSP buf_sp = ProcFileReader::ReadIntoDataBuffer (tid, "comm");
-    const char *comm_str = (const char *)buf_sp->GetBytes();
-    const char *cr_str = ::strchr(comm_str, '\n');
-    size_t length = cr_str ? (cr_str - comm_str) : strlen(comm_str);
-
-    std::string thread_name(comm_str, length);
-    return thread_name;
-}
-
-void
 Host::Backtrace (Stream &strm, uint32_t max_frames)
 {
+#ifndef __ANDROID__
     if (max_frames > 0)
     {
         std::vector<void *> frame_buffer (max_frames, NULL);
@@ -413,6 +394,9 @@ Host::Backtrace (Stream &strm, uint32_t max_frames)
             ::free (strs);
         }
     }
+#else
+    assert(false && "::backtrace() not supported on Android");
+#endif
 }
 
 size_t

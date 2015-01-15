@@ -47,6 +47,12 @@ HostInfoLinux::Initialize()
     g_fields = new HostInfoLinuxFields();
 }
 
+uint32_t
+HostInfoLinux::GetMaxThreadNameLength()
+{
+    return 16;
+}
+
 bool
 HostInfoLinux::GetOSVersion(uint32_t &major, uint32_t &minor, uint32_t &update)
 {
@@ -80,6 +86,35 @@ finished:
     minor = g_fields->m_os_minor;
     update = g_fields->m_os_update;
     return success;
+}
+
+bool
+HostInfoLinux::GetOSBuildString(std::string &s)
+{
+    struct utsname un;
+    ::memset(&un, 0, sizeof(utsname));
+    s.clear();
+
+    if (uname(&un) < 0)
+        return false;
+
+    s.assign(un.release);
+    return true;
+}
+
+bool
+HostInfoLinux::GetOSKernelDescription(std::string &s)
+{
+    struct utsname un;
+
+    ::memset(&un, 0, sizeof(utsname));
+    s.clear();
+
+    if (uname(&un) < 0)
+        return false;
+
+    s.assign(un.version);
+    return true;
 }
 
 llvm::StringRef

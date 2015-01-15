@@ -16,6 +16,7 @@ add_lldb_library(lldbPluginProcessUtility
   RegisterContextDummy.cpp
   RegisterContextFreeBSD_i386.cpp
   RegisterContextFreeBSD_mips64.cpp
+  RegisterContextFreeBSD_powerpc.cpp
   RegisterContextFreeBSD_x86_64.cpp
   RegisterContextHistory.cpp
   RegisterContextLinux_arm64.cpp
@@ -27,7 +28,9 @@ add_lldb_library(lldbPluginProcessUtility
   RegisterContextMach_i386.cpp
   RegisterContextMach_x86_64.cpp
   RegisterContextMemory.cpp
+  RegisterContextPOSIX_arm64.cpp
   RegisterContextPOSIX_mips64.cpp
+  RegisterContextPOSIX_powerpc.cpp
   RegisterContextPOSIX_x86.cpp
   RegisterContextThreadMemory.cpp
   StopInfoMachException.cpp

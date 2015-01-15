@@ -34,6 +34,8 @@ USEDLIBS = lldbAPI.a \
 	lldbPluginABIMacOSX_arm.a \
 	lldbPluginABIMacOSX_arm64.a \
 	lldbPluginABIMacOSX_i386.a \
+	lldbPluginABISysV_ppc.a \
+	lldbPluginABISysV_ppc64.a \
 	lldbPluginABISysV_x86_64.a \
 	lldbPluginABISysV_hexagon.a \
 	lldbPluginDisassemblerLLVM.a \
@@ -42,8 +44,10 @@ USEDLIBS = lldbAPI.a \
 	lldbPluginDynamicLoaderHexagon.a \
 	lldbPluginEmulateInstructionARM.a \
 	lldbPluginEmulateInstructionARM64.a \
+	lldbPluginInstrumentationRuntimeAddressSanitizer.a \
 	lldbPluginLanguageRuntimeCPlusPlusItaniumABI.a \
 	lldbPluginLanguageRuntimeObjCAppleObjCRuntime.a \
+	lldbPluginMemoryHistoryASan.a \
 	lldbPluginObjectContainerBSDArchive.a \
 	lldbPluginObjectFileELF.a \
 	lldbPluginObjectFileJIT.a \
@@ -92,7 +96,7 @@ endif
 include $(LLDB_LEVEL)/../../Makefile.config
 
 LINK_COMPONENTS := $(TARGETS_TO_BUILD) asmparser bitreader bitwriter codegen \
-                   instrumentation ipo irreader selectiondag jit mc mcjit \
+                   instrumentation ipo irreader selectiondag mc mcjit \
                    linker option
 
 ifeq ($(HOST_OS),Darwin)

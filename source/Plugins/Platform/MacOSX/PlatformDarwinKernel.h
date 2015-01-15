@@ -30,7 +30,7 @@ public:
     //------------------------------------------------------------
     // Class Functions
     //------------------------------------------------------------
-    static lldb_private::Platform*
+    static lldb::PlatformSP
     CreateInstance (bool force, const lldb_private::ArchSpec *arch);
 
     static void
@@ -93,6 +93,9 @@ public:
     virtual bool
     GetSupportedArchitectureAtIndex (uint32_t idx, 
                                      lldb_private::ArchSpec &arch);
+    
+    bool
+    SupportsModules() override { return false; }
 
 protected:
 

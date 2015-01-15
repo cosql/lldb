@@ -7,8 +7,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "lldb/lldb-python.h"
-
 // C Includes
 #include <errno.h>
 #include <getopt.h>
@@ -27,13 +25,16 @@
 // Other libraries and framework includes
 #include "lldb/lldb-private-log.h"
 #include "lldb/Core/Error.h"
-#include "lldb/Core/ConnectionFileDescriptor.h"
 #include "lldb/Core/ConnectionMachPort.h"
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Core/StreamFile.h"
+#include "lldb/Host/ConnectionFileDescriptor.h"
+#include "lldb/Host/HostThread.h"
+#include "lldb/Host/Pipe.h"
 #include "lldb/Host/OptionParser.h"
 #include "lldb/Host/Socket.h"
+#include "lldb/Host/ThreadLauncher.h"
 #include "lldb/Interpreter/CommandInterpreter.h"
 #include "lldb/Interpreter/CommandReturnObject.h"
 #include "Plugins/Process/gdb-remote/GDBRemoteCommunicationServer.h"
@@ -54,7 +55,7 @@ using namespace lldb_private;
 
 namespace
 {
-    lldb::thread_t s_listen_thread = LLDB_INVALID_HOST_THREAD;
+HostThread s_listen_thread;
     std::unique_ptr<ConnectionFileDescriptor> s_listen_connection_up;
     std::string s_listen_url;
 }
@@ -140,17 +141,17 @@ dump_available_platforms (FILE *output_file)
         fprintf (output_file, "%s\t%s\n", plugin_name, plugin_desc);
     }
 
-    if ( Platform::GetDefaultPlatform () )
+    if ( Platform::GetHostPlatform () )
     {
         // add this since the default platform doesn't necessarily get registered by
         // the plugin name (e.g. 'host' doesn't show up as a
         // registered platform plugin even though it's the default).
-        fprintf (output_file, "%s\tDefault platform for this host.\n", Platform::GetDefaultPlatform ()->GetPluginName ().AsCString ());
+        fprintf (output_file, "%s\tDefault platform for this host.\n", Platform::GetHostPlatform ()->GetPluginName ().AsCString ());
     }
 }
 
 static void
-run_lldb_commands (const lldb::DebuggerSP &debugger_sp, const std::vector<std::string> lldb_commands)
+run_lldb_commands (const lldb::DebuggerSP &debugger_sp, const std::vector<std::string> &lldb_commands)
 {
     for (const auto &lldb_command : lldb_commands)
     {
@@ -165,28 +166,28 @@ run_lldb_commands (const lldb::DebuggerSP &debugger_sp, const std::vector<std::s
 }
 
 static lldb::PlatformSP
-setup_platform (const std::string platform_name)
+setup_platform (const std::string &platform_name)
 {
     lldb::PlatformSP platform_sp;
 
     if (platform_name.empty())
     {
         printf ("using the default platform: ");
-        platform_sp = Platform::GetDefaultPlatform ();
+        platform_sp = Platform::GetHostPlatform ();
         printf ("%s\n", platform_sp->GetPluginName ().AsCString ());
         return platform_sp;
     }
 
     Error error;
-    platform_sp = Platform::Create (platform_name.c_str(), error);
+    platform_sp = Platform::Create (lldb_private::ConstString(platform_name), error);
     if (error.Fail ())
     {
         // the host platform isn't registered with that name (at
         // least, not always.  Check if the given name matches
         // the default platform name.  If so, use it.
-        if ( Platform::GetDefaultPlatform () && ( Platform::GetDefaultPlatform ()->GetPluginName () == ConstString (platform_name.c_str()) ) )
+        if ( Platform::GetHostPlatform () && ( Platform::GetHostPlatform ()->GetPluginName () == ConstString (platform_name.c_str()) ) )
         {
-            platform_sp = Platform::GetDefaultPlatform ();
+            platform_sp = Platform::GetHostPlatform ();
         }
         else
         {
@@ -279,7 +280,7 @@ static Error
 StartListenThread (const char *hostname, uint16_t port)
 {
     Error error;
-    if (IS_VALID_LLDB_HOST_THREAD(s_listen_thread))
+    if (s_listen_thread.IsJoinable())
     {
         error.SetErrorString("listen thread already running");
     }
@@ -293,7 +294,7 @@ StartListenThread (const char *hostname, uint16_t port)
 
         s_listen_url = listen_url;
         s_listen_connection_up.reset (new ConnectionFileDescriptor ());
-        s_listen_thread = Host::ThreadCreate (listen_url, ListenThread, nullptr, &error);
+        s_listen_thread = ThreadLauncher::LaunchThread(listen_url, ListenThread, nullptr, &error);
     }
     return error;
 }
@@ -301,12 +302,26 @@ StartListenThread (const char *hostname, uint16_t port)
 static bool
 JoinListenThread ()
 {
-    if (IS_VALID_LLDB_HOST_THREAD(s_listen_thread))
-    {
-        Host::ThreadJoin(s_listen_thread, nullptr, nullptr);
-        s_listen_thread = LLDB_INVALID_HOST_THREAD;
-    }
+    if (s_listen_thread.IsJoinable())
+        s_listen_thread.Join(nullptr);
     return true;
+}
+
+Error
+writePortToPipe (const char *const named_pipe_path, const uint16_t port)
+{
+    Pipe port_name_pipe;
+    // Wait for 10 seconds for pipe to be opened.
+    auto error = port_name_pipe.OpenAsWriterWithTimeout (named_pipe_path, false, std::chrono::microseconds (10 * 1000000));
+    if (error.Fail ())
+        return error;
+
+    char port_str[64];
+    const auto port_str_len = ::snprintf (port_str, sizeof (port_str), "%u", port);
+
+    size_t bytes_written = 0;
+    // Write the port number as a C string with the NULL terminator.
+    return port_name_pipe.Write (port_str, port_str_len + 1, bytes_written);
 }
 
 void
@@ -386,24 +401,18 @@ ConnectToRemote (GDBRemoteCommunicationServer &gdb_server, bool reverse_connect,
             // If we have a named pipe to write the port number back to, do that now.
             if (named_pipe_path && named_pipe_path[0] && connection_portno == 0)
             {
-                // FIXME use new generic named pipe support.
-                int fd = ::open(named_pipe_path, O_WRONLY);
-                const uint16_t bound_port = s_listen_connection_up->GetListeningPort(10);
-                if (fd > -1 && bound_port > 0)
+                const uint16_t bound_port = s_listen_connection_up->GetListeningPort (10);
+                if (bound_port > 0)
                 {
-
-                    char port_str[64];
-                    const ssize_t port_str_len = ::snprintf (port_str, sizeof(port_str), "%u", bound_port);
-                    // Write the port number as a C string with the NULL terminator.
-                    ::write (fd, port_str, port_str_len + 1);
-                    close (fd);
+                    error = writePortToPipe (named_pipe_path, bound_port);
+                    if (error.Fail ())
+                    {
+                        fprintf (stderr, "failed to write to the named pipe \'%s\': %s", named_pipe_path, error.AsCString());
+                    }
                 }
                 else
                 {
-                    if (fd < 0)
-                        fprintf (stderr, "failed to open named pipe '%s' for writing\n", named_pipe_path);
-                    else
-                        fprintf(stderr, "unable to get the bound port for the listening connection\n");
+                    fprintf (stderr, "unable to get the bound port for the listening connection\n");
                 }
             }
 

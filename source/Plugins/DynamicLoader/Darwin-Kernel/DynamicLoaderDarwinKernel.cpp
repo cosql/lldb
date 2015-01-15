@@ -256,21 +256,24 @@ DynamicLoaderDarwinKernel::SearchForKernelWithDebugHints (Process *process)
     if (process->GetTarget().GetArchitecture().GetAddressByteSize() == 8)
     {
         addr = process->ReadUnsignedIntegerFromMemory (0xffffff8000002010ULL, 8, LLDB_INVALID_ADDRESS, read_err);
+        if (CheckForKernelImageAtAddress (addr, process).IsValid())
+        {
+            return addr;
+        }
+        addr = process->ReadUnsignedIntegerFromMemory (0xffffff8000004010ULL, 8, LLDB_INVALID_ADDRESS, read_err);
+        if (CheckForKernelImageAtAddress (addr, process).IsValid())
+        {
+            return addr;
+        }
     }
     else
     {
         addr = process->ReadUnsignedIntegerFromMemory (0xffff0110, 4, LLDB_INVALID_ADDRESS, read_err);
-    }
-
-    if (addr == 0)
-        addr = LLDB_INVALID_ADDRESS;
-
-    if (addr != LLDB_INVALID_ADDRESS)
-    {
         if (CheckForKernelImageAtAddress (addr, process).IsValid())
+        {
             return addr;
+        }
     }
-
     return LLDB_INVALID_ADDRESS;
 }
 
@@ -467,7 +470,8 @@ DynamicLoaderDarwinKernel::DynamicLoaderDarwinKernel (Process* process, lldb::ad
     m_mutex(Mutex::eMutexTypeRecursive),
     m_break_id (LLDB_INVALID_BREAK_ID)
 {
-    PlatformSP platform_sp(Platform::FindPlugin (process, PlatformDarwinKernel::GetPluginNameStatic ()));
+    Error error;
+    PlatformSP platform_sp(Platform::Create(PlatformDarwinKernel::GetPluginNameStatic(), error));
     // Only select the darwin-kernel Platform if we've been asked to load kexts.
     // It can take some time to scan over all of the kext info.plists and that
     // shouldn't be done if kext loading is explicitly disabled.

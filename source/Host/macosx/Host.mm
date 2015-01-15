@@ -39,15 +39,18 @@
 
 #include "lldb/Core/ArchSpec.h"
 #include "lldb/Core/Communication.h"
-#include "lldb/Core/ConnectionFileDescriptor.h"
 #include "lldb/Core/DataExtractor.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
+#include "lldb/Core/ModuleSpec.h"
 #include "lldb/Core/StreamFile.h"
 #include "lldb/Core/StreamString.h"
+#include "lldb/Host/ConnectionFileDescriptor.h"
 #include "lldb/Host/Endian.h"
 #include "lldb/Host/FileSpec.h"
+#include "lldb/Host/FileSystem.h"
 #include "lldb/Host/HostInfo.h"
+#include "lldb/Host/ThreadLauncher.h"
 #include "lldb/Target/Platform.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Utility/CleanUp.h"
@@ -76,107 +79,6 @@ extern "C"
 
 using namespace lldb;
 using namespace lldb_private;
-
-static pthread_once_t g_thread_create_once = PTHREAD_ONCE_INIT;
-static pthread_key_t g_thread_create_key = 0;
-
-class MacOSXDarwinThread
-{
-public:
-    MacOSXDarwinThread(const char *thread_name) :
-        m_pool (nil)
-    {
-        // Register our thread with the collector if garbage collection is enabled.
-        if (objc_collectingEnabled())
-        {
-#if MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_5
-            // On Leopard and earlier there is no way objc_registerThreadWithCollector
-            // function, so we do it manually.
-            auto_zone_register_thread(auto_zone());
-#else
-            // On SnowLeopard and later we just call the thread registration function.
-            objc_registerThreadWithCollector();
-#endif
-        }
-        else
-        {
-            m_pool = [[NSAutoreleasePool alloc] init];
-        }
-
-
-        Host::SetThreadName (LLDB_INVALID_PROCESS_ID, LLDB_INVALID_THREAD_ID, thread_name);
-    }
-
-    ~MacOSXDarwinThread()
-    {
-        if (m_pool)
-        {
-            [m_pool drain];
-            m_pool = nil;
-        }
-    }
-
-    static void PThreadDestructor (void *v)
-    {
-        if (v)
-            delete static_cast<MacOSXDarwinThread*>(v);
-        ::pthread_setspecific (g_thread_create_key, NULL);
-    }
-
-protected:
-    NSAutoreleasePool * m_pool;
-private:
-    DISALLOW_COPY_AND_ASSIGN (MacOSXDarwinThread);
-};
-
-static void
-InitThreadCreated()
-{
-    ::pthread_key_create (&g_thread_create_key, MacOSXDarwinThread::PThreadDestructor);
-}
-
-void
-Host::ThreadCreated (const char *thread_name)
-{
-    ::pthread_once (&g_thread_create_once, InitThreadCreated);
-    if (g_thread_create_key)
-    {
-        ::pthread_setspecific (g_thread_create_key, new MacOSXDarwinThread(thread_name));
-    }
-}
-
-std::string
-Host::GetThreadName (lldb::pid_t pid, lldb::tid_t tid)
-{
-    std::string thread_name;
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5
-    // We currently can only get the name of a thread in the current process.
-    if (pid == Host::GetCurrentProcessID())
-    {
-        char pthread_name[1024];
-        if (::pthread_getname_np (::pthread_from_mach_thread_np (tid), pthread_name, sizeof(pthread_name)) == 0)
-        {
-            if (pthread_name[0])
-            {
-                thread_name = pthread_name;
-            }
-        }
-        else
-        {
-            dispatch_queue_t current_queue = ::dispatch_get_current_queue ();
-            if (current_queue != NULL)
-            {
-                const char *queue_name = dispatch_queue_get_label (current_queue);
-                if (queue_name && queue_name[0])
-                {
-                    thread_name = queue_name;
-                }
-            }
-        }
-    }
-#endif
-    return thread_name;
-}
 
 bool
 Host::GetBundleDirectory (const FileSpec &file, FileSpec &bundle_directory)
@@ -541,7 +443,8 @@ LaunchInNewTerminalWithAppleScript (const char *exe_path, ProcessLaunchInfo &lau
     darwin_debug_file_spec.GetPath(launcher_path, sizeof(launcher_path));
 
     const ArchSpec &arch_spec = launch_info.GetArchitecture();
-    if (arch_spec.IsValid())
+    // Only set the architecture if it is valid and if it isn't Haswell (x86_64h).
+    if (arch_spec.IsValid() && arch_spec.GetCore() != ArchSpec::eCore_x86_64_x86_64h)
         command.Printf("arch -arch %s ", arch_spec.GetArchitectureName());
 
     command.Printf("'%s' --unix-socket=%s", launcher_path, unix_socket_name);
@@ -567,24 +470,29 @@ LaunchInNewTerminalWithAppleScript (const char *exe_path, ProcessLaunchInfo &lau
     // need to be sent to darwin-debug. If we send all environment entries, we might blow the
     // max command line length, so we only send user modified entries.
     const char **envp = launch_info.GetEnvironmentEntries().GetConstArgumentVector ();
+
     StringList host_env;
     const size_t host_env_count = Host::GetEnvironment (host_env);
-    const char *env_entry;
-    for (size_t env_idx = 0; (env_entry = envp[env_idx]) != NULL; ++env_idx)
+
+    if (envp && envp[0])
     {
-        bool add_entry = true;
-        for (size_t i=0; i<host_env_count; ++i)
+        const char *env_entry;
+        for (size_t env_idx = 0; (env_entry = envp[env_idx]) != NULL; ++env_idx)
         {
-            const char *host_env_entry = host_env.GetStringAtIndex(i);
-            if (strcmp(env_entry, host_env_entry) == 0)
+            bool add_entry = true;
+            for (size_t i=0; i<host_env_count; ++i)
             {
-                add_entry = false;
-                break;
+                const char *host_env_entry = host_env.GetStringAtIndex(i);
+                if (strcmp(env_entry, host_env_entry) == 0)
+                {
+                    add_entry = false;
+                    break;
+                }
             }
-        }
-        if (add_entry)
-        {
-            command.Printf(" --env='%s'", env_entry);
+            if (add_entry)
+            {
+                command.Printf(" --env='%s'", env_entry);
+            }
         }
     }
 
@@ -642,28 +550,23 @@ LaunchInNewTerminalWithAppleScript (const char *exe_path, ProcessLaunchInfo &lau
     // in a shell and the shell will fork/exec a couple of times before we get
     // to the process that we wanted to launch. So when our process actually
     // gets launched, we will handshake with it and get the process ID for it.
-    lldb::thread_t accept_thread = Host::ThreadCreate (unix_socket_name,
-                                                       AcceptPIDFromInferior,
-                                                       connect_url,
-                                                       &lldb_error);
-    
+    HostThread accept_thread = ThreadLauncher::LaunchThread(unix_socket_name, AcceptPIDFromInferior, connect_url, &lldb_error);
 
     [applescript executeAndReturnError:nil];
     
     thread_result_t accept_thread_result = NULL;
-    if (Host::ThreadJoin (accept_thread, &accept_thread_result, &lldb_error))
+    lldb_error = accept_thread.Join(&accept_thread_result);
+    if (lldb_error.Success() && accept_thread_result)
     {
-        if (accept_thread_result)
-        {
-            pid = (intptr_t)accept_thread_result;
-        
-            // Wait for process to be stopped at the entry point by watching
-            // for the process status to be set to SSTOP which indicates it it
-            // SIGSTOP'ed at the entry point
-            WaitForProcessToSIGSTOP (pid, 5);
-        }
+        pid = (intptr_t)accept_thread_result;
+
+        // Wait for process to be stopped at the entry point by watching
+        // for the process status to be set to SSTOP which indicates it it
+        // SIGSTOP'ed at the entry point
+        WaitForProcessToSIGSTOP(pid, 5);
     }
-    ::unlink (unix_socket_name);
+
+    FileSystem::Unlink(unix_socket_name);
     [applescript release];
     if (pid != LLDB_INVALID_PROCESS_ID)
         launch_info.SetProcessID (pid);
@@ -1242,7 +1145,7 @@ getXPCAuthorization (ProcessLaunchInfo &launch_info)
 #endif
 
 static Error
-LaunchProcessXPC (const char *exe_path, ProcessLaunchInfo &launch_info, ::pid_t &pid)
+LaunchProcessXPC(const char *exe_path, ProcessLaunchInfo &launch_info, lldb::pid_t &pid)
 {
 #if !NO_XPC_SERVICES
     Error error = getXPCAuthorization(launch_info);
@@ -1409,18 +1312,15 @@ Host::LaunchProcess (ProcessLaunchInfo &launch_info)
 {
     Error error;
     char exe_path[PATH_MAX];
-    PlatformSP host_platform_sp (Platform::GetDefaultPlatform ());
-    
-    const ArchSpec &arch_spec = launch_info.GetArchitecture();
-    
-    FileSpec exe_spec(launch_info.GetExecutableFile());
-    
-    FileSpec::FileType file_type = exe_spec.GetFileType();
+    PlatformSP host_platform_sp (Platform::GetHostPlatform ());
+
+    ModuleSpec exe_module_spec(launch_info.GetExecutableFile(), launch_info.GetArchitecture());
+
+    FileSpec::FileType file_type = exe_module_spec.GetFileSpec().GetFileType();
     if (file_type != FileSpec::eFileTypeRegular)
     {
         lldb::ModuleSP exe_module_sp;
-        error = host_platform_sp->ResolveExecutable (exe_spec,
-                                                     arch_spec,
+        error = host_platform_sp->ResolveExecutable (exe_module_spec,
                                                      exe_module_sp,
                                                      NULL);
         
@@ -1428,12 +1328,12 @@ Host::LaunchProcess (ProcessLaunchInfo &launch_info)
             return error;
         
         if (exe_module_sp)
-            exe_spec = exe_module_sp->GetFileSpec();
+            exe_module_spec.GetFileSpec() = exe_module_sp->GetFileSpec();
     }
     
-    if (exe_spec.Exists())
+    if (exe_module_spec.GetFileSpec().Exists())
     {
-        exe_spec.GetPath (exe_path, sizeof(exe_path));
+        exe_module_spec.GetFileSpec().GetPath (exe_path, sizeof(exe_path));
     }
     else
     {
@@ -1451,9 +1351,9 @@ Host::LaunchProcess (ProcessLaunchInfo &launch_info)
         return error;
 #endif
     }
-    
-    ::pid_t pid = LLDB_INVALID_PROCESS_ID;
-    
+
+    lldb::pid_t pid = LLDB_INVALID_PROCESS_ID;
+
     if (ShouldLaunchUsingXPC(launch_info))
     {
         error = LaunchProcessXPC(exe_path, launch_info, pid);
@@ -1492,13 +1392,9 @@ Host::LaunchProcess (ProcessLaunchInfo &launch_info)
     return error;
 }
 
-lldb::thread_t
-Host::StartMonitoringChildProcess (Host::MonitorChildProcessCallback callback,
-                                   void *callback_baton,
-                                   lldb::pid_t pid,
-                                   bool monitor_signals)
+HostThread
+Host::StartMonitoringChildProcess(Host::MonitorChildProcessCallback callback, void *callback_baton, lldb::pid_t pid, bool monitor_signals)
 {
-    lldb::thread_t thread = LLDB_INVALID_HOST_THREAD;
     unsigned long mask = DISPATCH_PROC_EXIT;
     if (monitor_signals)
         mask |= DISPATCH_PROC_SIGNAL;
@@ -1584,7 +1480,7 @@ Host::StartMonitoringChildProcess (Host::MonitorChildProcessCallback callback,
 
         ::dispatch_resume (source);
     }
-    return thread;
+    return HostThread();
 }
 
 //----------------------------------------------------------------------
