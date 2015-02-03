@@ -23,7 +23,7 @@
 #include "lldb/Target/Process.h"
 #include "GDBRemoteCommunication.h"
 
-#include "../../../Host/common/NativeProcessProtocol.h"
+#include "lldb/Host/common/NativeProcessProtocol.h"
 
 class ProcessGDBRemote;
 class StringExtractorGDBRemote;
@@ -464,6 +464,9 @@ protected:
 
     PacketResult
     Handle_qThreadStopInfo (StringExtractorGDBRemote &packet);
+
+    PacketResult
+    Handle_qWatchpointSupportInfo (StringExtractorGDBRemote &packet);
 
     void
     SetCurrentThreadID (lldb::tid_t tid);

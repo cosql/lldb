@@ -82,7 +82,7 @@ bool
 CMICmdCmdStackInfoDepth::ParseArgs(void)
 {
     bool bOk =
-        m_setCmdArgs.Add(*(new CMICmdArgValOptionLong(m_constStrArgThread, true, true, CMICmdArgValListBase::eArgValType_Number, 1)));
+        m_setCmdArgs.Add(*(new CMICmdArgValOptionLong(m_constStrArgThread, false, true, CMICmdArgValListBase::eArgValType_Number, 1)));
     bOk = bOk && m_setCmdArgs.Add(*(new CMICmdArgValNumber(m_constStrArgMaxDepth, false, false)));
     return (bOk && ParseValidateCmdOptions());
 }
@@ -104,15 +104,15 @@ CMICmdCmdStackInfoDepth::Execute(void)
 
     // Retrieve the --thread option's thread ID (only 1)
     MIuint64 nThreadId = UINT64_MAX;
-    if (!pArgThread->GetExpectedOption<CMICmdArgValNumber, MIuint64>(nThreadId))
+    if (pArgThread->GetFound() && !pArgThread->GetExpectedOption<CMICmdArgValNumber, MIuint64>(nThreadId))
     {
         SetError(CMIUtilString::Format(MIRSRC(IDS_CMD_ERR_OPTION_NOT_FOUND), m_cmdData.strMiCmd.c_str(), m_constStrArgThread.c_str()));
         return MIstatus::failure;
     }
 
     CMICmnLLDBDebugSessionInfo &rSessionInfo(CMICmnLLDBDebugSessionInfo::Instance());
-    lldb::SBProcess &rProcess = rSessionInfo.m_lldbProcess;
-    lldb::SBThread thread = (nThreadId != UINT64_MAX) ? rProcess.GetThreadByIndexID(nThreadId) : rProcess.GetSelectedThread();
+    lldb::SBProcess sbProcess = rSessionInfo.GetProcess();
+    lldb::SBThread thread = (nThreadId != UINT64_MAX) ? sbProcess.GetThreadByIndexID(nThreadId) : sbProcess.GetSelectedThread();
     m_nThreadFrames = thread.GetNumFrames();
 
     return MIstatus::success;
@@ -202,7 +202,7 @@ bool
 CMICmdCmdStackListFrames::ParseArgs(void)
 {
     bool bOk =
-        m_setCmdArgs.Add(*(new CMICmdArgValOptionLong(m_constStrArgThread, true, true, CMICmdArgValListBase::eArgValType_Number, 1)));
+        m_setCmdArgs.Add(*(new CMICmdArgValOptionLong(m_constStrArgThread, false, true, CMICmdArgValListBase::eArgValType_Number, 1)));
     bOk = bOk && m_setCmdArgs.Add(*(new CMICmdArgValNumber(m_constStrArgFrameLow, false, true)));
     bOk = bOk && m_setCmdArgs.Add(*(new CMICmdArgValNumber(m_constStrArgFrameHigh, false, true)));
     return (bOk && ParseValidateCmdOptions());
@@ -226,7 +226,7 @@ CMICmdCmdStackListFrames::Execute(void)
 
     // Retrieve the --thread option's thread ID (only 1)
     MIuint64 nThreadId = UINT64_MAX;
-    if (!pArgThread->GetExpectedOption<CMICmdArgValNumber, MIuint64>(nThreadId))
+    if (pArgThread->GetFound() && !pArgThread->GetExpectedOption<CMICmdArgValNumber, MIuint64>(nThreadId))
     {
         SetError(CMIUtilString::Format(MIRSRC(IDS_CMD_ERR_OPTION_NOT_FOUND), m_cmdData.strMiCmd.c_str(), m_constStrArgThread.c_str()));
         return MIstatus::failure;
@@ -237,8 +237,8 @@ CMICmdCmdStackListFrames::Execute(void)
     const MIuint nFrameLow = pArgFrameLow->GetFound() ? pArgFrameLow->GetValue() : 0;
 
     CMICmnLLDBDebugSessionInfo &rSessionInfo(CMICmnLLDBDebugSessionInfo::Instance());
-    lldb::SBProcess &rProcess = rSessionInfo.m_lldbProcess;
-    lldb::SBThread thread = (nThreadId != UINT64_MAX) ? rProcess.GetThreadByIndexID(nThreadId) : rProcess.GetSelectedThread();
+    lldb::SBProcess sbProcess = rSessionInfo.GetProcess();
+    lldb::SBThread thread = (nThreadId != UINT64_MAX) ? sbProcess.GetThreadByIndexID(nThreadId) : sbProcess.GetSelectedThread();
     MIuint nThreadFrames = thread.GetNumFrames();
 
     // Adjust nThreadFrames for the nFrameHigh argument as we use nFrameHigh+1 in the min calc as the arg
@@ -414,8 +414,8 @@ CMICmdCmdStackListArguments::Execute(void)
     }
 
     CMICmnLLDBDebugSessionInfo &rSessionInfo(CMICmnLLDBDebugSessionInfo::Instance());
-    lldb::SBProcess &rProcess = rSessionInfo.m_lldbProcess;
-    lldb::SBThread thread = (nThreadId != UINT64_MAX) ? rProcess.GetThreadByIndexID(nThreadId) : rProcess.GetSelectedThread();
+    lldb::SBProcess sbProcess = rSessionInfo.GetProcess();
+    lldb::SBThread thread = (nThreadId != UINT64_MAX) ? sbProcess.GetThreadByIndexID(nThreadId) : sbProcess.GetSelectedThread();
     m_bThreadInvalid = !thread.IsValid();
     if (m_bThreadInvalid)
         return MIstatus::success;
@@ -583,8 +583,8 @@ CMICmdCmdStackListLocals::Execute(void)
     }
 
     CMICmnLLDBDebugSessionInfo &rSessionInfo(CMICmnLLDBDebugSessionInfo::Instance());
-    lldb::SBProcess &rProcess = rSessionInfo.m_lldbProcess;
-    lldb::SBThread thread = (nThreadId != UINT64_MAX) ? rProcess.GetThreadByIndexID(nThreadId) : rProcess.GetSelectedThread();
+    lldb::SBProcess sbProcess = rSessionInfo.GetProcess();
+    lldb::SBThread thread = (nThreadId != UINT64_MAX) ? sbProcess.GetThreadByIndexID(nThreadId) : sbProcess.GetSelectedThread();
     m_bThreadInvalid = !thread.IsValid();
     if (m_bThreadInvalid)
         return MIstatus::success;

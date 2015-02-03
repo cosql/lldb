@@ -21,15 +21,6 @@
 
 #include "GDBRemoteCommunication.h"
 
-typedef enum 
-{
-    eBreakpointSoftware = 0,
-    eBreakpointHardware,
-    eWatchpointWrite,
-    eWatchpointRead,
-    eWatchpointReadWrite
-} GDBStoppointType;
-
 class GDBRemoteCommunicationClient : public GDBRemoteCommunication
 {
 public:
@@ -375,8 +366,8 @@ public:
         case eWatchpointWrite:      return m_supports_z2;
         case eWatchpointRead:       return m_supports_z3;
         case eWatchpointReadWrite:  return m_supports_z4;
+        case eStoppointInvalid:     return false;
         }
-        return false;
     }
     uint8_t
     SendGDBStoppointTypePacket (GDBStoppointType type,   // Type of breakpoint or watchpoint

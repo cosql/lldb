@@ -129,12 +129,11 @@ CMICmdCmdVarCreate::Execute(void)
 
     // Retrieve the --thread option's thread ID (only 1)
     MIuint64 nThreadId = UINT64_MAX;
-    if (!pArgThread->GetExpectedOption<CMICmdArgValNumber, MIuint64>(nThreadId))
+    if (pArgThread->GetFound() && !pArgThread->GetExpectedOption<CMICmdArgValNumber, MIuint64>(nThreadId))
     {
         SetError(CMIUtilString::Format(MIRSRC(IDS_CMD_ERR_OPTION_NOT_FOUND), m_cmdData.strMiCmd.c_str(), m_constStrArgThread.c_str()));
         return MIstatus::failure;
     }
-    m_nThreadId = nThreadId;
 
     // Retrieve the --frame option's number
     MIuint64 nFrame = UINT64_MAX;
@@ -170,8 +169,9 @@ CMICmdCmdVarCreate::Execute(void)
         m_strVarName = CMIUtilString::Format("var%u", CMICmnLLDBDebugSessionInfoVarObj::VarObjIdGet());
         CMICmnLLDBDebugSessionInfoVarObj::VarObjIdInc();
     }
-    lldb::SBProcess &rProcess = rSessionInfo.m_lldbProcess;
-    lldb::SBThread thread = rProcess.GetThreadByIndexID(nThreadId);
+    lldb::SBProcess sbProcess = rSessionInfo.GetProcess();
+    lldb::SBThread thread = (nThreadId != UINT64_MAX) ? sbProcess.GetThreadByIndexID(nThreadId) : sbProcess.GetSelectedThread();
+    m_nThreadId = thread.GetIndexID();
     lldb::SBFrame frame = thread.GetFrameAtIndex(nFrame);
     lldb::SBValue value = frame.FindVariable(rStrExpression.c_str());
     if (!value.IsValid())
@@ -519,8 +519,8 @@ CMICmdCmdVarUpdate::ExamineSBValueForChange(const CMICmnLLDBDebugSessionInfoVarO
     vrwbChanged = false;
 
     CMICmnLLDBDebugSessionInfo &rSessionInfo(CMICmnLLDBDebugSessionInfo::Instance());
-    lldb::SBProcess &rProcess = rSessionInfo.m_lldbProcess;
-    lldb::SBThread thread = rProcess.GetSelectedThread();
+    lldb::SBProcess sbProcess = rSessionInfo.GetProcess();
+    lldb::SBThread thread = sbProcess.GetSelectedThread();
     if (thread.GetNumFrames() == 0)
     {
         return MIstatus::success;
