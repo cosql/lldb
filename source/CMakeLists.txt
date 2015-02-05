@@ -82,6 +82,7 @@ add_lldb_library(liblldb SHARED
   API/SBHostOS.cpp
   API/SBInstruction.cpp
   API/SBInstructionList.cpp
+  API/SBLaunchInfo.cpp
   API/SBLineEntry.cpp
   API/SBListener.cpp
   API/SBModule.cpp

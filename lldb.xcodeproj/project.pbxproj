@@ -92,6 +92,8 @@
 		23F4034D1926E0F60046DC9B /* NativeRegisterContextRegisterInfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 23F403481926CC250046DC9B /* NativeRegisterContextRegisterInfo.cpp */; };
 		25420ECD1A6490B8009ADBCB /* OptionValueChar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 25420ECC1A6490B8009ADBCB /* OptionValueChar.cpp */; };
 		25420ED21A649D88009ADBCB /* PipeBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 25420ED11A649D88009ADBCB /* PipeBase.cpp */; };
+		254FBB951A81AA7F00BD6378 /* SBLaunchInfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 254FBB941A81AA7F00BD6378 /* SBLaunchInfo.cpp */; };
+		254FBB971A81B03100BD6378 /* SBLaunchInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 254FBB961A81B03100BD6378 /* SBLaunchInfo.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		260157C61885F51C00F875CF /* libpanel.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 260157C41885F4FF00F875CF /* libpanel.dylib */; };
 		260157C71885F52500F875CF /* libpanel.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 260157C41885F4FF00F875CF /* libpanel.dylib */; };
 		260157C81885F53100F875CF /* libpanel.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 260157C41885F4FF00F875CF /* libpanel.dylib */; };
@@ -147,6 +149,7 @@
 		263C4938178B50C40070F12D /* SBModuleSpec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 263C4937178B50C40070F12D /* SBModuleSpec.cpp */; };
 		263C493A178B50CF0070F12D /* SBModuleSpec.h in Headers */ = {isa = PBXBuildFile; fileRef = 263C4939178B50CF0070F12D /* SBModuleSpec.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		263E949F13661AEA00E7D1CE /* UnwindAssembly-x86.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 263E949D13661AE400E7D1CE /* UnwindAssembly-x86.cpp */; };
+		263FDE601A79A01500E68013 /* FormatEntity.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 263FDE5F1A79A01500E68013 /* FormatEntity.cpp */; };
 		2640E19F15DC78FD00F23B50 /* Property.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2640E19E15DC78FD00F23B50 /* Property.cpp */; };
 		2642FBAE13D003B400ED6808 /* CommunicationKDP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2642FBA813D003B400ED6808 /* CommunicationKDP.cpp */; };
 		2642FBB013D003B400ED6808 /* ProcessKDP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2642FBAA13D003B400ED6808 /* ProcessKDP.cpp */; };
@@ -183,6 +186,8 @@
 		26491E3E15E1DB9F00CBFFC2 /* OptionValueRegex.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 26491E3D15E1DB9F00CBFFC2 /* OptionValueRegex.cpp */; };
 		264A12FC1372522000875C42 /* EmulateInstructionARM64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 264A12FA1372522000875C42 /* EmulateInstructionARM64.cpp */; };
 		264A1300137252C700875C42 /* ARM64_DWARF_Registers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 264A12FE137252C700875C42 /* ARM64_DWARF_Registers.cpp */; };
+		264A58EC1A7DBC8C00A6B1B0 /* OptionValueFormatEntity.h in Headers */ = {isa = PBXBuildFile; fileRef = 264A58EB1A7DBC8C00A6B1B0 /* OptionValueFormatEntity.h */; };
+		264A58EE1A7DBCAD00A6B1B0 /* OptionValueFormatEntity.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 264A58ED1A7DBCAD00A6B1B0 /* OptionValueFormatEntity.cpp */; };
 		264A97BF133918BC0017F0BE /* PlatformRemoteGDBServer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 264A97BD133918BC0017F0BE /* PlatformRemoteGDBServer.cpp */; };
 		264D8D5013661BD7003A368F /* UnwindAssembly.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 264D8D4F13661BD7003A368F /* UnwindAssembly.cpp */; };
 		265205A813D3E3F700132FE2 /* RegisterContextKDP_arm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 265205A213D3E3F700132FE2 /* RegisterContextKDP_arm.cpp */; };
@@ -1165,6 +1170,9 @@
 		25420ECC1A6490B8009ADBCB /* OptionValueChar.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = OptionValueChar.cpp; path = source/Interpreter/OptionValueChar.cpp; sourceTree = "<group>"; };
 		25420ECE1A64911B009ADBCB /* OptionValueChar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OptionValueChar.h; path = include/lldb/Interpreter/OptionValueChar.h; sourceTree = "<group>"; };
 		25420ED11A649D88009ADBCB /* PipeBase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PipeBase.cpp; sourceTree = "<group>"; };
+		254FBB921A81AA5200BD6378 /* SBLaunchInfo.i */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c.preprocessed; path = SBLaunchInfo.i; sourceTree = "<group>"; };
+		254FBB941A81AA7F00BD6378 /* SBLaunchInfo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SBLaunchInfo.cpp; path = source/API/SBLaunchInfo.cpp; sourceTree = "<group>"; };
+		254FBB961A81B03100BD6378 /* SBLaunchInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SBLaunchInfo.h; path = include/lldb/API/SBLaunchInfo.h; sourceTree = "<group>"; };
 		260157C41885F4FF00F875CF /* libpanel.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libpanel.dylib; path = /usr/lib/libpanel.dylib; sourceTree = "<absolute>"; };
 		260223E7115F06D500A601A2 /* SBCommunication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SBCommunication.h; path = include/lldb/API/SBCommunication.h; sourceTree = "<group>"; };
 		260223E8115F06E500A601A2 /* SBCommunication.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SBCommunication.cpp; path = source/API/SBCommunication.cpp; sourceTree = "<group>"; };
@@ -1363,6 +1371,8 @@
 		263C493B178B61CC0070F12D /* SBModuleSpec.i */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c.preprocessed; path = SBModuleSpec.i; sourceTree = "<group>"; };
 		263E949D13661AE400E7D1CE /* UnwindAssembly-x86.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "UnwindAssembly-x86.cpp"; sourceTree = "<group>"; };
 		263E949E13661AE400E7D1CE /* UnwindAssembly-x86.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UnwindAssembly-x86.h"; sourceTree = "<group>"; };
+		263FDE5D1A799F2D00E68013 /* FormatEntity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FormatEntity.h; path = include/lldb/Core/FormatEntity.h; sourceTree = "<group>"; };
+		263FDE5F1A79A01500E68013 /* FormatEntity.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FormatEntity.cpp; path = source/Core/FormatEntity.cpp; sourceTree = "<group>"; };
 		263FEDA5112CC1DA00E4C208 /* ThreadSafeSTLMap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ThreadSafeSTLMap.h; path = include/lldb/Core/ThreadSafeSTLMap.h; sourceTree = "<group>"; };
 		2640E19E15DC78FD00F23B50 /* Property.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Property.cpp; path = source/Interpreter/Property.cpp; sourceTree = "<group>"; };
 		26424E3C125986CB0016D82C /* ValueObjectConstResult.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ValueObjectConstResult.cpp; path = source/Core/ValueObjectConstResult.cpp; sourceTree = "<group>"; };
@@ -1412,6 +1422,8 @@
 		264A12FF137252C700875C42 /* ARM64_DWARF_Registers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ARM64_DWARF_Registers.h; path = source/Utility/ARM64_DWARF_Registers.h; sourceTree = "<group>"; };
 		264A43BB1320B3B4005B4096 /* Platform.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Platform.h; path = include/lldb/Target/Platform.h; sourceTree = "<group>"; };
 		264A43BD1320BCEB005B4096 /* Platform.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Platform.cpp; path = source/Target/Platform.cpp; sourceTree = "<group>"; };
+		264A58EB1A7DBC8C00A6B1B0 /* OptionValueFormatEntity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OptionValueFormatEntity.h; path = include/lldb/Interpreter/OptionValueFormatEntity.h; sourceTree = "<group>"; };
+		264A58ED1A7DBCAD00A6B1B0 /* OptionValueFormatEntity.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = OptionValueFormatEntity.cpp; path = source/Interpreter/OptionValueFormatEntity.cpp; sourceTree = "<group>"; };
 		264A97BD133918BC0017F0BE /* PlatformRemoteGDBServer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PlatformRemoteGDBServer.cpp; path = "gdb-server/PlatformRemoteGDBServer.cpp"; sourceTree = "<group>"; };
 		264A97BE133918BC0017F0BE /* PlatformRemoteGDBServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PlatformRemoteGDBServer.h; path = "gdb-server/PlatformRemoteGDBServer.h"; sourceTree = "<group>"; };
 		264AD83711095BA600E0B039 /* CommandObjectLog.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommandObjectLog.cpp; path = source/Commands/CommandObjectLog.cpp; sourceTree = "<group>"; };
@@ -3021,6 +3033,7 @@
 		2611FEEE142D83060017FEA3 /* interface */ = {
 			isa = PBXGroup;
 			children = (
+				254FBB921A81AA5200BD6378 /* SBLaunchInfo.i */,
 				2611FEEF142D83060017FEA3 /* SBAddress.i */,
 				2611FEF0142D83060017FEA3 /* SBBlock.i */,
 				2611FEF1142D83060017FEA3 /* SBBreakpoint.i */,
@@ -3090,6 +3103,8 @@
 		262D3190111B4341004E6F88 /* API */ = {
 			isa = PBXGroup;
 			children = (
+				254FBB961A81B03100BD6378 /* SBLaunchInfo.h */,
+				254FBB941A81AA7F00BD6378 /* SBLaunchInfo.cpp */,
 				2611FEEE142D83060017FEA3 /* interface */,
 				26BC7C2510F1B3BC00F91463 /* lldb-defines.h */,
 				26BC7C2610F1B3BC00F91463 /* lldb-enumerations.h */,
@@ -3826,6 +3841,8 @@
 				26BC7D6310F1B77400F91463 /* FileSpecList.h */,
 				26BC7E7B10F1B85900F91463 /* FileSpecList.cpp */,
 				26BC7D6410F1B77400F91463 /* Flags.h */,
+				263FDE5D1A799F2D00E68013 /* FormatEntity.h */,
+				263FDE5F1A79A01500E68013 /* FormatEntity.cpp */,
 				26F7305F139D8FC900FD51C7 /* History.h */,
 				26F73061139D8FDB00FD51C7 /* History.cpp */,
 				260A63161861008E00FECF8E /* IOHandler.h */,
@@ -4259,6 +4276,8 @@
 				260CC64215D0440D002BF2E0 /* OptionValueFileSpecLIst.cpp */,
 				260CC62915D04377002BF2E0 /* OptionValueFormat.h */,
 				260CC64315D0440D002BF2E0 /* OptionValueFormat.cpp */,
+				264A58EB1A7DBC8C00A6B1B0 /* OptionValueFormatEntity.h */,
+				264A58ED1A7DBCAD00A6B1B0 /* OptionValueFormatEntity.cpp */,
 				26DAED5F15D327A200E15819 /* OptionValuePathMappings.h */,
 				26DAED6215D327C200E15819 /* OptionValuePathMappings.cpp */,
 				260CC62415D04377002BF2E0 /* OptionValueProperties.h */,
@@ -5029,6 +5048,7 @@
 				9AC7038E117674FB0086C050 /* SBInstruction.h in Headers */,
 				9AC70390117675270086C050 /* SBInstructionList.h in Headers */,
 				26DE205911618FE700A093E2 /* SBLineEntry.h in Headers */,
+				254FBB971A81B03100BD6378 /* SBLaunchInfo.h in Headers */,
 				AF0EBBED185941360059E52F /* SBQueueItem.h in Headers */,
 				26680227115FD13D008E1FE4 /* SBListener.h in Headers */,
 				26DE204F11618E9800A093E2 /* SBModule.h in Headers */,
@@ -5133,6 +5153,7 @@
 				AF77E0A21A033D360096C0EA /* RegisterContextFreeBSD_powerpc.h in Headers */,
 				260CC63715D04377002BF2E0 /* OptionValueSInt64.h in Headers */,
 				AF061F8C182C980000B6A19C /* HistoryUnwind.h in Headers */,
+				264A58EC1A7DBC8C00A6B1B0 /* OptionValueFormatEntity.h in Headers */,
 				260CC63815D04377002BF2E0 /* OptionValueString.h in Headers */,
 				260CC63915D04377002BF2E0 /* OptionValueUInt64.h in Headers */,
 				AF0F6E511739A76D009180FE /* RegisterContextKDP_arm64.h in Headers */,
@@ -5632,6 +5653,7 @@
 				9452573A16262D0200325455 /* SBDeclaration.cpp in Sources */,
 				4CE4F675162C973F00F75CB3 /* SBExpressionOptions.cpp in Sources */,
 				AF9107EE168570D200DBCD3C /* RegisterContextDarwin_arm64.cpp in Sources */,
+				254FBB951A81AA7F00BD6378 /* SBLaunchInfo.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5745,6 +5767,7 @@
 				AF254E31170CCC33007AE5C9 /* PlatformDarwinKernel.cpp in Sources */,
 				2689004813353E0400698AC0 /* RegularExpression.cpp in Sources */,
 				2689004913353E0400698AC0 /* Scalar.cpp in Sources */,
+				263FDE601A79A01500E68013 /* FormatEntity.cpp in Sources */,
 				2689004A13353E0400698AC0 /* SearchFilter.cpp in Sources */,
 				2689004B13353E0400698AC0 /* Section.cpp in Sources */,
 				2689004C13353E0400698AC0 /* SourceManager.cpp in Sources */,
@@ -5770,6 +5793,7 @@
 				2689005A13353E0400698AC0 /* ValueObjectList.cpp in Sources */,
 				2689005B13353E0400698AC0 /* ValueObjectRegister.cpp in Sources */,
 				2689005C13353E0400698AC0 /* ValueObjectVariable.cpp in Sources */,
+				264A58EE1A7DBCAD00A6B1B0 /* OptionValueFormatEntity.cpp in Sources */,
 				8C2D6A53197A1EAF006989C9 /* MemoryHistory.cpp in Sources */,
 				2689005D13353E0400698AC0 /* VMRange.cpp in Sources */,
 				2689005E13353E0E00698AC0 /* ClangASTSource.cpp in Sources */,
