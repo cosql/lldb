@@ -189,6 +189,12 @@ public:
 
     void
     SetUserSpecifiedTrapHandlerNames (const Args &args);
+    
+    bool
+    GetDisplayRuntimeSupportValues () const;
+    
+    void
+    SetDisplayRuntimeSupportValues (bool b);
 };
 
 typedef std::shared_ptr<TargetProperties> TargetPropertiesSP;
@@ -617,7 +623,11 @@ public:
     
     Error
     Launch (ProcessLaunchInfo &launch_info,
-            Stream *stream); // Optional stream to receive first stop info
+            Stream *stream);  // Optional stream to receive first stop info
+
+    Error
+    Attach (ProcessAttachInfo &attach_info,
+            Stream *stream);  // Optional stream to receive first stop info
 
     //------------------------------------------------------------------
     // This part handles the breakpoints.
@@ -778,6 +788,9 @@ public:
     bool
     ClearAllWatchpointHitCounts ();
 
+    bool
+    ClearAllWatchpointHistoricValues ();
+    
     bool
     IgnoreAllWatchpoints (uint32_t ignore_count);
 
