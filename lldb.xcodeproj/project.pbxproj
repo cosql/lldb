@@ -740,6 +740,10 @@
 		6D55B2901A8A806200A70529 /* GDBRemoteCommunicationServerCommon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6D55B28D1A8A806200A70529 /* GDBRemoteCommunicationServerCommon.cpp */; };
 		6D55B2911A8A806200A70529 /* GDBRemoteCommunicationServerLLGS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6D55B28E1A8A806200A70529 /* GDBRemoteCommunicationServerLLGS.cpp */; };
 		6D55B2921A8A806200A70529 /* GDBRemoteCommunicationServerPlatform.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6D55B28F1A8A806200A70529 /* GDBRemoteCommunicationServerPlatform.cpp */; };
+		6D55BAED1A8CD0A800A70529 /* PlatformAndroid.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6D55BAE91A8CD08C00A70529 /* PlatformAndroid.cpp */; };
+		6D55BAEE1A8CD0B200A70529 /* PlatformAndroidRemoteGDBServer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6D55BAEB1A8CD08C00A70529 /* PlatformAndroidRemoteGDBServer.cpp */; };
+		6D55BAEF1A8CD0B700A70529 /* PlatformAndroid.h in Headers */ = {isa = PBXBuildFile; fileRef = 6D55BAEA1A8CD08C00A70529 /* PlatformAndroid.h */; };
+		6D55BAF01A8CD0BD00A70529 /* PlatformAndroidRemoteGDBServer.h in Headers */ = {isa = PBXBuildFile; fileRef = 6D55BAEC1A8CD08C00A70529 /* PlatformAndroidRemoteGDBServer.h */; };
 		8C2D6A53197A1EAF006989C9 /* MemoryHistory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8C2D6A52197A1EAF006989C9 /* MemoryHistory.cpp */; };
 		8C2D6A5E197A250F006989C9 /* MemoryHistoryASan.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8C2D6A5A197A1FDC006989C9 /* MemoryHistoryASan.cpp */; };
 		8CCB017E19BA28A80009FD44 /* ThreadCollection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8CCB017A19BA283D0009FD44 /* ThreadCollection.cpp */; };
@@ -761,6 +765,8 @@
 		941BCC8014E48C4000BB969C /* SBTypeFormat.h in Headers */ = {isa = PBXBuildFile; fileRef = 9461568714E355F2003A195C /* SBTypeFormat.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		941BCC8114E48C4000BB969C /* SBTypeSummary.h in Headers */ = {isa = PBXBuildFile; fileRef = 9461568814E355F2003A195C /* SBTypeSummary.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		941BCC8214E48C4000BB969C /* SBTypeSynthetic.h in Headers */ = {isa = PBXBuildFile; fileRef = 9461568914E355F2003A195C /* SBTypeSynthetic.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		94235B9E1A8D667400EB2EED /* SBVariablesOptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 94235B9B1A8D5FF300EB2EED /* SBVariablesOptions.cpp */; };
+		94235B9F1A8D66D600EB2EED /* SBVariablesOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = 94235B9A1A8D5FD800EB2EED /* SBVariablesOptions.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		942829561A89614C00521B30 /* JSON.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 942829551A89614C00521B30 /* JSON.cpp */; };
 		942829CC1A89839300521B30 /* liblldb-core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2689FFCA13353D7A00698AC0 /* liblldb-core.a */; };
 		942AFF0519F84ABF007B43B4 /* LibCxxVector.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 942AFF0419F84ABF007B43B4 /* LibCxxVector.cpp */; };
@@ -2357,6 +2363,16 @@
 		6D55B2931A8A808400A70529 /* GDBRemoteCommunicationServerCommon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GDBRemoteCommunicationServerCommon.h; sourceTree = "<group>"; };
 		6D55B2941A8A808400A70529 /* GDBRemoteCommunicationServerLLGS.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GDBRemoteCommunicationServerLLGS.h; sourceTree = "<group>"; };
 		6D55B2951A8A808400A70529 /* GDBRemoteCommunicationServerPlatform.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GDBRemoteCommunicationServerPlatform.h; sourceTree = "<group>"; };
+		6D55BAE01A8CD03D00A70529 /* HostInfoAndroid.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = HostInfoAndroid.cpp; path = source/Host/android/HostInfoAndroid.cpp; sourceTree = "<group>"; };
+		6D55BAE11A8CD03D00A70529 /* ProcessLauncherAndroid.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ProcessLauncherAndroid.cpp; path = source/Host/android/ProcessLauncherAndroid.cpp; sourceTree = "<group>"; };
+		6D55BAE21A8CD06000A70529 /* Android.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Android.h; path = include/lldb/Host/android/Android.h; sourceTree = "<group>"; };
+		6D55BAE31A8CD06000A70529 /* Config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Config.h; path = include/lldb/Host/android/Config.h; sourceTree = "<group>"; };
+		6D55BAE41A8CD06000A70529 /* HostInfoAndroid.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = HostInfoAndroid.h; path = include/lldb/Host/android/HostInfoAndroid.h; sourceTree = "<group>"; };
+		6D55BAE51A8CD06000A70529 /* ProcessLauncherAndroid.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ProcessLauncherAndroid.h; path = include/lldb/Host/android/ProcessLauncherAndroid.h; sourceTree = "<group>"; };
+		6D55BAE91A8CD08C00A70529 /* PlatformAndroid.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PlatformAndroid.cpp; sourceTree = "<group>"; };
+		6D55BAEA1A8CD08C00A70529 /* PlatformAndroid.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PlatformAndroid.h; sourceTree = "<group>"; };
+		6D55BAEB1A8CD08C00A70529 /* PlatformAndroidRemoteGDBServer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PlatformAndroidRemoteGDBServer.cpp; sourceTree = "<group>"; };
+		6D55BAEC1A8CD08C00A70529 /* PlatformAndroidRemoteGDBServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PlatformAndroidRemoteGDBServer.h; sourceTree = "<group>"; };
 		8C2D6A52197A1EAF006989C9 /* MemoryHistory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryHistory.cpp; path = source/Target/MemoryHistory.cpp; sourceTree = "<group>"; };
 		8C2D6A54197A1EBE006989C9 /* MemoryHistory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MemoryHistory.h; path = include/lldb/Target/MemoryHistory.h; sourceTree = "<group>"; };
 		8C2D6A5A197A1FDC006989C9 /* MemoryHistoryASan.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MemoryHistoryASan.cpp; sourceTree = "<group>"; };
@@ -2386,6 +2402,9 @@
 		940B04DE1A8986070045D5F7 /* libncurses.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libncurses.dylib; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/lib/libncurses.dylib; sourceTree = DEVELOPER_DIR; };
 		940B04E01A89860E0045D5F7 /* libedit.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libedit.dylib; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/lib/libedit.dylib; sourceTree = DEVELOPER_DIR; };
 		94145430175D7FDE00284436 /* lldb-versioning.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "lldb-versioning.h"; path = "include/lldb/lldb-versioning.h"; sourceTree = "<group>"; };
+		94235B9A1A8D5FD800EB2EED /* SBVariablesOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SBVariablesOptions.h; path = include/lldb/API/SBVariablesOptions.h; sourceTree = "<group>"; };
+		94235B9B1A8D5FF300EB2EED /* SBVariablesOptions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SBVariablesOptions.cpp; path = source/API/SBVariablesOptions.cpp; sourceTree = "<group>"; };
+		94235B9D1A8D601A00EB2EED /* SBVariablesOptions.i */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c.preprocessed; path = SBVariablesOptions.i; sourceTree = "<group>"; };
 		942829541A89614000521B30 /* JSON.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JSON.h; path = include/lldb/Utility/JSON.h; sourceTree = "<group>"; };
 		942829551A89614C00521B30 /* JSON.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = JSON.cpp; path = source/Utility/JSON.cpp; sourceTree = "<group>"; };
 		942829C01A89835300521B30 /* argdumper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = argdumper; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -3162,6 +3181,7 @@
 				9461569514E3567F003A195C /* SBTypeSynthetic.i */,
 				2611FF12142D83060017FEA3 /* SBValue.i */,
 				2611FF13142D83060017FEA3 /* SBValueList.i */,
+				94235B9D1A8D601A00EB2EED /* SBVariablesOptions.i */,
 				B2A5872514313B480092BFBA /* SBWatchpoint.i */,
 			);
 			name = interface;
@@ -3180,8 +3200,6 @@
 		262D3190111B4341004E6F88 /* API */ = {
 			isa = PBXGroup;
 			children = (
-				254FBB961A81B03100BD6378 /* SBLaunchInfo.h */,
-				254FBB941A81AA7F00BD6378 /* SBLaunchInfo.cpp */,
 				2611FEEE142D83060017FEA3 /* interface */,
 				26BC7C2510F1B3BC00F91463 /* lldb-defines.h */,
 				26BC7C2610F1B3BC00F91463 /* lldb-enumerations.h */,
@@ -3237,6 +3255,8 @@
 				9AC703AE117675410086C050 /* SBInstruction.cpp */,
 				9AC7038F117675270086C050 /* SBInstructionList.h */,
 				9AC703B0117675490086C050 /* SBInstructionList.cpp */,
+				254FBB961A81B03100BD6378 /* SBLaunchInfo.h */,
+				254FBB941A81AA7F00BD6378 /* SBLaunchInfo.cpp */,
 				26DE205811618FE700A093E2 /* SBLineEntry.h */,
 				26DE20621161904200A093E2 /* SBLineEntry.cpp */,
 				9A9831021125FC5800A56CB0 /* SBListener.h */,
@@ -3297,6 +3317,8 @@
 				9A19A6AD1163BB9800E0D453 /* SBValue.cpp */,
 				9A357582116CFDEE00E8ED2F /* SBValueList.h */,
 				9A35758D116CFE0F00E8ED2F /* SBValueList.cpp */,
+				94235B9A1A8D5FD800EB2EED /* SBVariablesOptions.h */,
+				94235B9B1A8D5FF300EB2EED /* SBVariablesOptions.cpp */,
 				B2A58721143119810092BFBA /* SBWatchpoint.h */,
 				B2A58723143119D50092BFBA /* SBWatchpoint.cpp */,
 			);
@@ -4255,6 +4277,7 @@
 		26BC7DD010F1B7C100F91463 /* Host */ = {
 			isa = PBXGroup;
 			children = (
+				6D55B29B1A8CCFF000A70529 /* android */,
 				33E5E8451A6736D30024ED68 /* StringConvert.h */,
 				69A01E1A1236C5D400C660B5 /* common */,
 				3FDFE53919A29399009756A7 /* freebsd */,
@@ -4563,6 +4586,7 @@
 		26C5577E132575B6008FD8FE /* Platform */ = {
 			isa = PBXGroup;
 			children = (
+				6D55BAE61A8CD08C00A70529 /* Android */,
 				2694E99814FC0BB30076DE67 /* FreeBSD */,
 				264A97BC133918A30017F0BE /* GDB Server */,
 				23042D0F1976C9D800621B2C /* Kalimba */,
@@ -4930,6 +4954,30 @@
 			path = source/Host/common;
 			sourceTree = "<group>";
 		};
+		6D55B29B1A8CCFF000A70529 /* android */ = {
+			isa = PBXGroup;
+			children = (
+				6D55BAE21A8CD06000A70529 /* Android.h */,
+				6D55BAE31A8CD06000A70529 /* Config.h */,
+				6D55BAE41A8CD06000A70529 /* HostInfoAndroid.h */,
+				6D55BAE51A8CD06000A70529 /* ProcessLauncherAndroid.h */,
+				6D55BAE01A8CD03D00A70529 /* HostInfoAndroid.cpp */,
+				6D55BAE11A8CD03D00A70529 /* ProcessLauncherAndroid.cpp */,
+			);
+			name = android;
+			sourceTree = "<group>";
+		};
+		6D55BAE61A8CD08C00A70529 /* Android */ = {
+			isa = PBXGroup;
+			children = (
+				6D55BAE91A8CD08C00A70529 /* PlatformAndroid.cpp */,
+				6D55BAEA1A8CD08C00A70529 /* PlatformAndroid.h */,
+				6D55BAEB1A8CD08C00A70529 /* PlatformAndroidRemoteGDBServer.cpp */,
+				6D55BAEC1A8CD08C00A70529 /* PlatformAndroidRemoteGDBServer.h */,
+			);
+			path = Android;
+			sourceTree = "<group>";
+		};
 		8C2D6A58197A1FB9006989C9 /* MemoryHistory */ = {
 			isa = PBXGroup;
 			children = (
@@ -5174,6 +5222,7 @@
 				26D265A2136B40EE002EEE45 /* SharingPtr.h in Headers */,
 				26D265BC136B4269002EEE45 /* lldb-public.h in Headers */,
 				4CE4F673162C971A00F75CB3 /* SBExpressionOptions.h in Headers */,
+				94235B9F1A8D66D600EB2EED /* SBVariablesOptions.h in Headers */,
 				23EFE389193D1ABC00E54E54 /* SBTypeEnumMember.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -5232,6 +5281,7 @@
 				260CC63415D04377002BF2E0 /* OptionValueFileSpec.h in Headers */,
 				26CFDCA11861638D000E63E5 /* Editline.h in Headers */,
 				26BC17B018C7F4CB00D2196D /* RegisterContextPOSIXCore_x86_64.h in Headers */,
+				6D55BAF01A8CD0BD00A70529 /* PlatformAndroidRemoteGDBServer.h in Headers */,
 				AF9B8F34182DB52900DA866F /* SystemRuntimeMacOSX.h in Headers */,
 				26474CB518D0CB180073DEBA /* RegisterContextLinux_x86_64.h in Headers */,
 				26D1804716CEE12C00EDFB5B /* TimeSpecTimeout.h in Headers */,
@@ -5247,6 +5297,7 @@
 				26D1804516CEE12500EDFB5B /* KQueue.h in Headers */,
 				AF77E0A21A033D360096C0EA /* RegisterContextFreeBSD_powerpc.h in Headers */,
 				260CC63715D04377002BF2E0 /* OptionValueSInt64.h in Headers */,
+				6D55BAEF1A8CD0B700A70529 /* PlatformAndroid.h in Headers */,
 				AF061F8C182C980000B6A19C /* HistoryUnwind.h in Headers */,
 				264A58EC1A7DBC8C00A6B1B0 /* OptionValueFormatEntity.h in Headers */,
 				260CC63815D04377002BF2E0 /* OptionValueString.h in Headers */,
@@ -5771,6 +5822,7 @@
 				9AC703AF117675410086C050 /* SBInstruction.cpp in Sources */,
 				9AC703B1117675490086C050 /* SBInstructionList.cpp in Sources */,
 				268F9D55123AA16600B91E9B /* SBSymbolContextList.cpp in Sources */,
+				94235B9E1A8D667400EB2EED /* SBVariablesOptions.cpp in Sources */,
 				26C72C961243229A0068DC16 /* SBStream.cpp in Sources */,
 				9443B122140C18C40013457C /* SBData.cpp in Sources */,
 				4CF52AF8142829390051E832 /* SBFileSpecList.cpp in Sources */,
@@ -5879,6 +5931,7 @@
 				2689003713353E0400698AC0 /* DataBufferMemoryMap.cpp in Sources */,
 				2689003813353E0400698AC0 /* DataExtractor.cpp in Sources */,
 				2689003913353E0400698AC0 /* Debugger.cpp in Sources */,
+				6D55BAEE1A8CD0B200A70529 /* PlatformAndroidRemoteGDBServer.cpp in Sources */,
 				2689003A13353E0400698AC0 /* Disassembler.cpp in Sources */,
 				236124A51986B4E2004EFC37 /* Socket.cpp in Sources */,
 				3FDFDDBF199D345E009756A7 /* FileCache.cpp in Sources */,
@@ -6082,6 +6135,7 @@
 				268900F013353E6F00698AC0 /* Process.cpp in Sources */,
 				26BC17AD18C7F4CB00D2196D /* RegisterContextPOSIXCore_mips64.cpp in Sources */,
 				268900F113353E6F00698AC0 /* RegisterContext.cpp in Sources */,
+				6D55BAED1A8CD0A800A70529 /* PlatformAndroid.cpp in Sources */,
 				268900F213353E6F00698AC0 /* SectionLoadList.cpp in Sources */,
 				942AFF0519F84ABF007B43B4 /* LibCxxVector.cpp in Sources */,
 				268900F313353E6F00698AC0 /* StackFrame.cpp in Sources */,
