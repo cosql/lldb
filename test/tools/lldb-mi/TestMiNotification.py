@@ -10,13 +10,17 @@ class MiNotificationTestCase(lldbmi_testcase.MiTestCaseBase):
 
     @lldbmi_test
     @expectedFailureWindows("llvm.org/pr22274: need a pexpect replacement for windows")
-    @unittest2.skip("lldb-mi doesn't print prompt in all cases")
     def test_lldbmi_prompt(self):
         """Test that 'lldb-mi --interpreter' echos '(gdb)' after commands and events."""
 
         self.spawnLldbMi(args = None)
 
         # Test that lldb-mi is ready after startup
+        self.expect(self.child_prompt, exactly = True)
+
+        # Test that lldb-mi is ready after unknown command
+        self.runCmd("-unknown-command")
+        self.expect("\^error,msg=\"Driver\. Received command '-unknown-command'\. It was not handled\. Command 'unknown-command' not in Command Factory\"")
         self.expect(self.child_prompt, exactly = True)
 
         # Test that lldb-mi is ready after -file-exec-and-symbols

@@ -60,7 +60,6 @@ class MiExecTestCase(lldbmi_testcase.MiTestCaseBase):
 
     @lldbmi_test
     @expectedFailureWindows("llvm.org/pr22274: need a pexpect replacement for windows")
-    @unittest2.skip("reviews.llvm.org/D6965: requires this patch")
     def test_lldbmi_exec_arguments_set(self):
         """Test that 'lldb-mi --interpreter' can pass args using -exec-arguments."""
 
@@ -91,7 +90,8 @@ class MiExecTestCase(lldbmi_testcase.MiTestCaseBase):
         #self.runCmd("-data-evaluate-expression argv[2]")
         #self.expect("\^done,value=\"2nd arg\"")
         self.runCmd("-interpreter-exec command \"print argv[2]\"")
-        self.expect("\"2nd arg\"")
+        #FIXME: lldb-mi doesn't handle inner quotes
+        self.expect("\"\\\\\\\"2nd arg\\\\\\\"\"") #FIXME: self.expect("\"2nd arg\"")
         #self.runCmd("-data-evaluate-expression argv[3]")
         #self.expect("\^done,value=\"third_arg\"")
         self.runCmd("-interpreter-exec command \"print argv[3]\"")
@@ -103,7 +103,6 @@ class MiExecTestCase(lldbmi_testcase.MiTestCaseBase):
 
     @lldbmi_test
     @expectedFailureWindows("llvm.org/pr22274: need a pexpect replacement for windows")
-    @unittest2.skip("reviews.llvm.org/D6965: requires this patch")
     def test_lldbmi_exec_arguments_reset(self):
         """Test that 'lldb-mi --interpreter' can reset previously set args using -exec-arguments."""
 
@@ -153,22 +152,22 @@ class MiExecTestCase(lldbmi_testcase.MiTestCaseBase):
         # Test -exec-next
         self.runCmd("-exec-next --thread 1 --frame 0")
         self.expect("\^running")
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"22\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"26\"")
 
         # Test that --thread is optional
         self.runCmd("-exec-next --frame 0")
         self.expect("\^running")
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"23\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"27\"")
 
         # Test that --frame is optional
         self.runCmd("-exec-next --thread 1")
         self.expect("\^running")
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"25\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"29\"")
 
         # Test that both --thread and --frame are optional
         self.runCmd("-exec-next --thread 1")
         self.expect("\^running")
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"27\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"31\"")
 
         # Test that an invalid --thread is handled
         self.runCmd("-exec-next --thread 0")
@@ -205,23 +204,23 @@ class MiExecTestCase(lldbmi_testcase.MiTestCaseBase):
         # Test -exec-next-instruction
         self.runCmd("-exec-next-instruction --thread 1 --frame 0")
         self.expect("\^running")
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"20\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"24\"")
 
         # Test that --thread is optional
         self.runCmd("-exec-next-instruction --frame 0")
         self.expect("\^running")
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"20\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"24\"")
 
         # Test that --frame is optional
         self.runCmd("-exec-next-instruction --thread 1")
         self.expect("\^running")
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"20\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"24\"")
 
         # Test that both --thread and --frame are optional
         self.runCmd("-exec-next-instruction --thread 1")
         self.expect("\^running")
         # Depending on compiler, it can stop at different line.
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"2[0-2]\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"2[4-6]\"")
 
         # Test that an invalid --thread is handled
         self.runCmd("-exec-next-instruction --thread 0")
@@ -260,7 +259,7 @@ class MiExecTestCase(lldbmi_testcase.MiTestCaseBase):
         #FIXME: is this supposed to step into printf?
         self.runCmd("-exec-step --thread 1 --frame 0")
         self.expect("\^running")
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"22\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"26\"")
 
         # Test that -exec-step steps into a_MyFunction and back out
         # (and that --thread is optional)
@@ -275,10 +274,10 @@ class MiExecTestCase(lldbmi_testcase.MiTestCaseBase):
         # -exec-step can keep us in the a_MyFunction for gcc
         self.runCmd("-exec-finish --frame 0")
         self.expect("\^running")
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"22\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"26\"")
         self.runCmd("-exec-step --frame 0")
         self.expect("\^running")
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"23\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"27\"")
 
         # Test that -exec-step steps into b_MyFunction
         # (and that --frame is optional)
@@ -330,13 +329,13 @@ class MiExecTestCase(lldbmi_testcase.MiTestCaseBase):
         # instruction
         self.runCmd("-exec-step-instruction --thread 1 --frame 0")
         self.expect("\^running")
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"22\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"2[4-6]\"")
 
         # Test that -exec-step-instruction steps over non branching
         # instruction (and that --thread is optional)
         self.runCmd("-exec-step-instruction --frame 0")
         self.expect("\^running")
-        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"22\"")
+        self.expect("\*stopped,reason=\"end-stepping-range\".*main.c\",line=\"2[4-6]\"")
 
         # Test that -exec-step-instruction steps into a_MyFunction
         # (and that --frame is optional)
@@ -363,7 +362,6 @@ class MiExecTestCase(lldbmi_testcase.MiTestCaseBase):
 
     @lldbmi_test
     @expectedFailureWindows("llvm.org/pr22274: need a pexpect replacement for windows")
-    @unittest2.skip("reviews.llvm.org/D6965: requires this patch")
     def test_lldbmi_exec_finish(self):
         """Test that 'lldb-mi --interpreter' works for -exec-finish."""
 

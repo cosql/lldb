@@ -60,6 +60,7 @@ add_lldb_library(liblldb SHARED
   lldb.cpp
   lldb-log.cpp
   API/SBAddress.cpp
+  API/SBAttachInfo.cpp
   API/SBBlock.cpp
   API/SBBreakpoint.cpp
   API/SBBreakpointLocation.cpp
