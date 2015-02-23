@@ -80,11 +80,11 @@ Property::Property (const PropertyDefinition &definition) :
             m_value_sp.reset (enum_value);
             if (definition.default_cstr_value)
             {
-                if (enum_value->SetValueFromCString(definition.default_cstr_value).Success())
+                if (enum_value->SetValueFromString(definition.default_cstr_value).Success())
                 {
                     enum_value->SetDefaultValue(enum_value->GetCurrentValue());
                     // Call Clear() since we don't want the value to appear as
-                    // having been set since we called SetValueFromCString() above.
+                    // having been set since we called SetValueFromString() above.
                     // Clear will set the current value to the default and clear
                     // the boolean that says that the value has been set.
                     enum_value->Clear();
@@ -120,6 +120,21 @@ Property::Property (const PropertyDefinition &definition) :
                     new_format = (Format)definition.default_uint_value;
                 m_value_sp.reset (new OptionValueFormat(new_format));
             }
+            break;
+            
+        case OptionValue::eTypeLanguage:
+            // "definition.default_uint_value" is the default language enumeration value if
+            // "definition.default_cstr_value" is NULL, otherwise interpret
+            // "definition.default_cstr_value" as a string value that represents the default
+            // value.
+        {
+            LanguageType new_lang = eLanguageTypeUnknown;
+            if (definition.default_cstr_value)
+                LanguageRuntime::GetLanguageTypeFromString(definition.default_cstr_value);
+            else
+                new_lang = (LanguageType)definition.default_uint_value;
+            m_value_sp.reset (new OptionValueLanguage(new_lang));
+        }
             break;
             
         case OptionValue::eTypeFormatEntity:
