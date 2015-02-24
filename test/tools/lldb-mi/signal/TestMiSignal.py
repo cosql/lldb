@@ -37,7 +37,7 @@ class MiSignalTestCase(lldbmi_testcase.MiTestCaseBase):
 
         # Test that -exec-interrupt can interrupt an execution
         self.runCmd("-exec-interrupt")
-        self.expect("\*stopped,reason=\"signal-received\"")
+        self.expect("\*stopped,reason=\"signal-received\",signal-name=\"SIGINT\",signal-meaning=\"Interrupt\",.*thread-id=\"1\",stopped-threads=\"all\"")
 
         # Continue (to loop forever)
         self.runCmd("-exec-continue")
@@ -45,7 +45,7 @@ class MiSignalTestCase(lldbmi_testcase.MiTestCaseBase):
 
         # Test that Ctrl+C can interrupt an execution
         self.child.sendintr() #FIXME: here uses self.child directly
-        self.expect("\*stopped,reason=\"signal-received\"")
+        self.expect("\*stopped,reason=\"signal-received\",signal-name=\"SIGINT\",signal-meaning=\"Interrupt\",.*thread-id=\"1\",stopped-threads=\"all\"")
 
     @lldbmi_test
     @expectedFailureWindows("llvm.org/pr22274: need a pexpect replacement for windows")
@@ -64,11 +64,8 @@ class MiSignalTestCase(lldbmi_testcase.MiTestCaseBase):
         self.expect("\^done")
 
         # Test that *stopped is printed
-        # Note that message is different in Darwin and Linux:
-        # Darwin: "*stopped,reason=\"signal-received\",signal=\"17\",thread-id=\"1\",stopped-threads=\"all\"" 
-        # Linux:  "*stopped,reason=\"end-stepping-range\",frame={addr=\"0x[0-9a-f]+\",func=\"??\",args=\[\],file=\"??\",fullname=\"??\",line=\"-1\"},thread-id=\"1\",stopped-threads=\"all\"
-        self.expect("\*stopped,reason=\"(signal-received|end-stepping-range)\",.+,thread-id=\"1\",stopped-threads=\"all\"")
-        
+        self.expect("\*stopped,reason=\"signal-received\",signal-name=\"SIGINT\",signal-meaning=\"Interrupt\",.*thread-id=\"1\",stopped-threads=\"all\"")
+
         # Run to main to make sure we have not exited the application
         self.runCmd("-break-insert -f main")
         self.expect("\^done,bkpt={number=\"1\"")
@@ -112,7 +109,7 @@ class MiSignalTestCase(lldbmi_testcase.MiTestCaseBase):
             self.expect("\^done")
 
             # Test that *stopped is printed
-            self.expect("\*stopped,reason=\"signal-received\",signal=\"17\",thread-id=\"1\",stopped-threads=\"all\"")
+            self.expect("\*stopped,reason=\"signal-received\",signal-name=\"SIGINT\",signal-meaning=\"Interrupt\",.*thread-id=\"1\",stopped-threads=\"all\"")
 
             # Exit
             self.runCmd("-gdb-exit")
