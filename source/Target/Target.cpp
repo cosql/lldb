@@ -34,7 +34,9 @@
 #include "lldb/Core/Timer.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Expression/ClangASTSource.h"
+#include "lldb/Expression/ClangPersistentVariables.h"
 #include "lldb/Expression/ClangUserExpression.h"
+#include "lldb/Expression/ClangModulesDeclVendor.h"
 #include "lldb/Host/FileSpec.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Interpreter/CommandInterpreter.h"
@@ -43,7 +45,10 @@
 #include "lldb/Interpreter/OptionValues.h"
 #include "lldb/Interpreter/Property.h"
 #include "lldb/lldb-private-log.h"
+#include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Symbol/ObjectFile.h"
+#include "lldb/Target/LanguageRuntime.h"
+#include "lldb/Target/ObjCLanguageRuntime.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/SectionLoadList.h"
 #include "lldb/Target/StackFrame.h"
@@ -53,6 +58,76 @@
 
 using namespace lldb;
 using namespace lldb_private;
+
+namespace {
+// This event data class is for use by the TargetList to broadcast new target notifications.
+class TargetEventData : public EventData
+{
+public:
+    TargetEventData(const lldb::TargetSP &new_target_sp)
+        : EventData()
+        , m_target_sp(new_target_sp)
+    {
+    }
+        
+    virtual ~TargetEventData()
+    {
+    }
+
+    static const ConstString &
+    GetFlavorString()
+    {
+        static ConstString g_flavor("Target::TargetEventData");
+        return g_flavor;
+    }
+
+    virtual const ConstString &
+    GetFlavor() const
+    {
+        return GetFlavorString();
+    }
+
+    lldb::TargetSP &
+    GetTarget()
+    {
+        return m_target_sp;
+    }
+
+    virtual void
+    Dump(Stream *s) const
+    {
+    }
+
+    static const lldb::TargetSP
+    GetTargetFromEvent(const lldb::EventSP &event_sp)
+    {
+        TargetSP target_sp;
+
+        const TargetEventData *data = GetEventDataFromEvent (event_sp.get());
+        if (data)
+            target_sp = data->m_target_sp;
+
+        return target_sp;
+    }
+        
+    static const TargetEventData *
+    GetEventDataFromEvent(const Event *event_ptr)
+    {
+        if (event_ptr)
+        {
+            const EventData *event_data = event_ptr->GetData();
+            if (event_data && event_data->GetFlavor() == TargetEventData::GetFlavorString())
+                return static_cast <const TargetEventData *> (event_ptr->GetData());
+        }
+        return nullptr;
+    }
+
+private:
+    lldb::TargetSP m_target_sp;
+
+    DISALLOW_COPY_AND_ASSIGN (TargetEventData);
+};
+}
 
 ConstString &
 Target::GetStaticBroadcasterClass ()
@@ -83,7 +158,7 @@ Target::Target(Debugger &debugger, const ArchSpec &target_arch, const lldb::Plat
     m_scratch_ast_context_ap (),
     m_scratch_ast_source_ap (),
     m_ast_importer_ap (),
-    m_persistent_variables (),
+    m_persistent_variables (new ClangPersistentVariables),
     m_source_manager_ap(),
     m_stop_hooks (),
     m_stop_hook_next_id (0),
@@ -226,7 +301,7 @@ Target::Destroy()
     m_last_created_watchpoint.reset();
     m_search_filter_sp.reset();
     m_image_search_paths.Clear(notify);
-    m_persistent_variables.Clear();
+    m_persistent_variables->Clear();
     m_stop_hooks.clear();
     m_stop_hook_next_id = 0;
     m_suppress_stop_hooks = false;
@@ -1953,7 +2028,7 @@ Target::EvaluateExpression
     lldb::ClangExpressionVariableSP persistent_var_sp;
     // Only check for persistent variables the expression starts with a '$' 
     if (expr_cstr[0] == '$')
-        persistent_var_sp = m_persistent_variables.GetVariable (expr_cstr);
+        persistent_var_sp = m_persistent_variables->GetVariable (expr_cstr);
 
     if (persistent_var_sp)
     {
@@ -1975,6 +2050,12 @@ Target::EvaluateExpression
     m_suppress_stop_hooks = old_suppress_value;
     
     return execution_results;
+}
+
+ClangPersistentVariables &
+Target::GetPersistentVariables()
+{
+    return *m_persistent_variables;
 }
 
 lldb::addr_t
@@ -2720,6 +2801,12 @@ Target::StopHook::StopHook (const StopHook &rhs) :
 
 Target::StopHook::~StopHook ()
 {
+}
+
+void
+Target::StopHook::SetSpecifier(SymbolContextSpecifier *specifier)
+{
+    m_specifier_sp.reset(specifier);
 }
 
 void
@@ -3521,61 +3608,3 @@ TargetProperties::DisableSTDIOValueChangedCallback(void *target_property_ptr, Op
     else
         this_->m_launch_info.GetFlags().Clear(lldb::eLaunchFlagDisableSTDIO);
 }
-
-//----------------------------------------------------------------------
-// Target::TargetEventData
-//----------------------------------------------------------------------
-const ConstString &
-Target::TargetEventData::GetFlavorString ()
-{
-    static ConstString g_flavor ("Target::TargetEventData");
-    return g_flavor;
-}
-
-const ConstString &
-Target::TargetEventData::GetFlavor () const
-{
-    return TargetEventData::GetFlavorString ();
-}
-
-Target::TargetEventData::TargetEventData (const lldb::TargetSP &new_target_sp) :
-    EventData(),
-    m_target_sp (new_target_sp)
-{
-}
-
-Target::TargetEventData::~TargetEventData()
-{
-
-}
-
-void
-Target::TargetEventData::Dump (Stream *s) const
-{
-
-}
-
-const TargetSP
-Target::TargetEventData::GetTargetFromEvent (const lldb::EventSP &event_sp)
-{
-    TargetSP target_sp;
-
-    const TargetEventData *data = GetEventDataFromEvent (event_sp.get());
-    if (data)
-        target_sp = data->m_target_sp;
-
-    return target_sp;
-}
-
-const Target::TargetEventData *
-Target::TargetEventData::GetEventDataFromEvent (const Event *event_ptr)
-{
-    if (event_ptr)
-    {
-        const EventData *event_data = event_ptr->GetData();
-        if (event_data && event_data->GetFlavor() == TargetEventData::GetFlavorString())
-            return static_cast <const TargetEventData *> (event_ptr->GetData());
-    }
-    return NULL;
-}
-
