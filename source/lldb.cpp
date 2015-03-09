@@ -188,11 +188,6 @@ lldb_private::InitializeForLLGS ()
         PlatformDarwinKernel::Initialize();
         ObjectFileMachO::Initialize();
 #endif
-
-#ifndef LLDB_DISABLE_PYTHON
-        ScriptInterpreterPython::InitializePrivate();
-        OperatingSystemPython::Initialize();
-#endif
     }
 }
 
@@ -208,6 +203,12 @@ lldb_private::Initialize ()
     if (!g_inited)
     {
         g_inited = true;
+
+#ifndef LLDB_DISABLE_PYTHON
+        ScriptInterpreterPython::InitializePrivate();
+        OperatingSystemPython::Initialize();
+#endif
+
         // Initialize LLVM and Clang
         llvm::InitializeAllTargets();
         llvm::InitializeAllAsmPrinters();
@@ -308,9 +309,6 @@ lldb_private::TerminateLLGS ()
     PlatformDarwinKernel::Terminate();
     SymbolVendorMacOSX::Terminate();
 #endif
-#ifndef LLDB_DISABLE_PYTHON
-    OperatingSystemPython::Terminate();
-#endif
 
     Log::Terminate();
 }
@@ -356,6 +354,11 @@ lldb_private::Terminate ()
     PlatformRemoteGDBServer::Terminate();
     ProcessGDBRemote::Terminate();
     DynamicLoaderStatic::Terminate();
+
+#ifndef LLDB_DISABLE_PYTHON
+    OperatingSystemPython::Terminate();
+#endif
+
     TerminateLLGS();
 }
 

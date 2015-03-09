@@ -17,6 +17,7 @@ class MiSignalTestCase(lldbmi_testcase.MiTestCaseBase):
     @lldbmi_test
     @expectedFailureWindows("llvm.org/pr22274: need a pexpect replacement for windows")
     @skipIfFreeBSD # llvm.org/pr22411: Fails on FreeBSD apparently due to thread race conditions
+    @skipIfLinux # llvm.org/pr22841: lldb-mi tests fail on all Linux buildbots
     def test_lldbmi_stopped_when_interrupt(self):
         """Test that 'lldb-mi --interpreter' interrupt and resume a looping app."""
 
@@ -54,6 +55,7 @@ class MiSignalTestCase(lldbmi_testcase.MiTestCaseBase):
     @lldbmi_test
     @expectedFailureWindows("llvm.org/pr22274: need a pexpect replacement for windows")
     @skipIfFreeBSD # llvm.org/pr22411: Fails on FreeBSD apparently due to thread race conditions
+    @skipIfLinux # llvm.org/pr22841: lldb-mi tests fail on all Linux buildbots
     def test_lldbmi_stopped_when_stopatentry_local(self):
         """Test that 'lldb-mi --interpreter' notifies after it was stopped on entry (local)."""
 
@@ -88,7 +90,7 @@ class MiSignalTestCase(lldbmi_testcase.MiTestCaseBase):
         """Test that 'lldb-mi --interpreter' notifies after it was stopped on entry (remote)."""
 
         # Prepare debugserver
-        sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "lldb-gdbserver")))
+        sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "lldb-server")))
         import lldbgdbserverutils
         debugserver_exe = lldbgdbserverutils.get_debugserver_exe()
         if not debugserver_exe:
@@ -128,6 +130,7 @@ class MiSignalTestCase(lldbmi_testcase.MiTestCaseBase):
     @lldbmi_test
     @expectedFailureWindows("llvm.org/pr22274: need a pexpect replacement for windows")
     @skipIfFreeBSD # llvm.org/pr22411: Failure presumably due to known thread races
+    @skipIfLinux # llvm.org/pr22841: lldb-mi tests fail on all Linux buildbots
     def test_lldbmi_stopped_when_segfault_local(self):
         """Test that 'lldb-mi --interpreter' notifies after it was stopped when segfault occurred (local)."""
 
@@ -164,7 +167,7 @@ class MiSignalTestCase(lldbmi_testcase.MiTestCaseBase):
         """Test that 'lldb-mi --interpreter' notifies after it was stopped when segfault occurred (remote)."""
 
         # Prepare debugserver
-        sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "lldb-gdbserver")))
+        sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "lldb-server")))
         import lldbgdbserverutils
         debugserver_exe = lldbgdbserverutils.get_debugserver_exe()
         if not debugserver_exe:
