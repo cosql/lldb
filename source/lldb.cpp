@@ -81,6 +81,7 @@
 
 #if defined (__linux__)
 #include "Plugins/Process/Linux/ProcessLinux.h"
+#include "Plugins/Process/POSIX/ProcessPOSIXLog.h"
 #endif
 
 #if defined (_WIN32)
@@ -97,6 +98,7 @@
 #endif
 
 #include "Plugins/Platform/gdb-server/PlatformRemoteGDBServer.h"
+#include "Plugins/Process/gdb-remote/ProcessGDBRemoteLog.h"
 #include "Plugins/Process/gdb-remote/ProcessGDBRemote.h"
 #include "Plugins/DynamicLoader/Static/DynamicLoaderStatic.h"
 #include "Plugins/MemoryHistory/asan/MemoryHistoryASan.h"
@@ -148,17 +150,11 @@ lldb_private::InitializeForLLGS ()
 
         llvm::install_fatal_error_handler(fatal_error_handler, 0);
 
-        // Initialize plug-ins
+        ProcessGDBRemoteLog::Initialize();
 
+        // Initialize plug-ins
         ObjectContainerBSDArchive::Initialize();
         ObjectFileELF::Initialize();
-        SymbolVendorELF::Initialize();
-        SymbolFileDWARF::Initialize();
-        SymbolFileSymtab::Initialize();
-        UnwindAssemblyInstEmulation::Initialize();
-        UnwindAssembly_x86::Initialize();
-        EmulateInstructionARM::Initialize();
-        EmulateInstructionARM64::Initialize();
         ObjectFilePECOFF::Initialize();
         DynamicLoaderPOSIXDYLD::Initialize();
         PlatformFreeBSD::Initialize();
@@ -166,27 +162,25 @@ lldb_private::InitializeForLLGS ()
         PlatformWindows::Initialize();
         PlatformKalimba::Initialize();
         PlatformAndroid::Initialize();
-        SymbolFileDWARFDebugMap::Initialize();
-        ItaniumABILanguageRuntime::Initialize();
 
         //----------------------------------------------------------------------
         // Apple/Darwin hosted plugins
         //----------------------------------------------------------------------
         DynamicLoaderMacOSXDYLD::Initialize();
-        AppleObjCRuntimeV2::Initialize();
-        AppleObjCRuntimeV1::Initialize();
         ObjectContainerUniversalMachO::Initialize();
 
         PlatformRemoteiOS::Initialize();
         PlatformMacOSX::Initialize();
         PlatformiOSSimulator::Initialize();
-        SystemRuntimeMacOSX::Initialize();
 
 #if defined (__APPLE__)
-        SymbolVendorMacOSX::Initialize();
         DynamicLoaderDarwinKernel::Initialize();
         PlatformDarwinKernel::Initialize();
         ObjectFileMachO::Initialize();
+#endif
+#if defined (__linux__)
+        static ConstString g_linux_log_name("linux");
+        ProcessPOSIXLog::Initialize(g_linux_log_name);
 #endif
 #ifndef LLDB_DISABLE_PYTHON
         ScriptInterpreterPython::InitializePrivate();
@@ -227,6 +221,19 @@ lldb_private::Initialize ()
         MemoryHistoryASan::Initialize();
         AddressSanitizerRuntime::Initialize();
 
+        SymbolVendorELF::Initialize();
+        SymbolFileDWARF::Initialize();
+        SymbolFileSymtab::Initialize();
+        UnwindAssemblyInstEmulation::Initialize();
+        UnwindAssembly_x86::Initialize();
+        EmulateInstructionARM::Initialize();
+        EmulateInstructionARM64::Initialize();
+        SymbolFileDWARFDebugMap::Initialize();
+        ItaniumABILanguageRuntime::Initialize();
+        AppleObjCRuntimeV2::Initialize();
+        AppleObjCRuntimeV1::Initialize();
+        SystemRuntimeMacOSX::Initialize();
+
 #if defined (__linux__)
         //----------------------------------------------------------------------
         // Linux hosted plugins
@@ -243,6 +250,7 @@ lldb_private::Initialize ()
         ProcessFreeBSDKernel::Initialize();
 #endif
 #if defined (__APPLE__)
+        SymbolVendorMacOSX::Initialize();
         ProcessKDP::Initialize();
         ProcessMachCore::Initialize();
 #endif
@@ -281,13 +289,6 @@ lldb_private::TerminateLLGS ()
         Timer scoped_timer (__PRETTY_FUNCTION__, __PRETTY_FUNCTION__);
         ObjectContainerBSDArchive::Terminate();
         ObjectFileELF::Terminate();
-        SymbolVendorELF::Terminate();
-        SymbolFileDWARF::Terminate();
-        SymbolFileSymtab::Terminate();
-        UnwindAssembly_x86::Terminate();
-        UnwindAssemblyInstEmulation::Terminate();
-        EmulateInstructionARM::Terminate ();
-        EmulateInstructionARM64::Terminate ();
         ObjectFilePECOFF::Terminate ();
         DynamicLoaderPOSIXDYLD::Terminate ();
         PlatformFreeBSD::Terminate();
@@ -295,22 +296,16 @@ lldb_private::TerminateLLGS ()
         PlatformWindows::Terminate();
         PlatformKalimba::Terminate();
         PlatformAndroid::Terminate();
-        SymbolFileDWARFDebugMap::Terminate();
-        ItaniumABILanguageRuntime::Terminate();
         DynamicLoaderMacOSXDYLD::Terminate();
-        AppleObjCRuntimeV2::Terminate();
-        AppleObjCRuntimeV1::Terminate();
         ObjectContainerUniversalMachO::Terminate();
         PlatformMacOSX::Terminate();
         PlatformRemoteiOS::Terminate();
         PlatformiOSSimulator::Terminate();
-        SystemRuntimeMacOSX::Terminate();
 
 #if defined (__APPLE__)
         DynamicLoaderDarwinKernel::Terminate();
         ObjectFileMachO::Terminate();
         PlatformDarwinKernel::Terminate();
-        SymbolVendorMacOSX::Terminate();
 #endif
 
 #ifndef LLDB_DISABLE_PYTHON
@@ -343,10 +338,23 @@ lldb_private::Terminate ()
         ProcessElfCore::Terminate();
         MemoryHistoryASan::Terminate();
         AddressSanitizerRuntime::Terminate();
+        SymbolVendorELF::Terminate();
+        SymbolFileDWARF::Terminate();
+        SymbolFileSymtab::Terminate();
+        UnwindAssembly_x86::Terminate();
+        UnwindAssemblyInstEmulation::Terminate();
+        EmulateInstructionARM::Terminate();
+        EmulateInstructionARM64::Terminate();
+        SymbolFileDWARFDebugMap::Terminate();
+        ItaniumABILanguageRuntime::Terminate();
+        AppleObjCRuntimeV2::Terminate();
+        AppleObjCRuntimeV1::Terminate();
+        SystemRuntimeMacOSX::Terminate();
 
 #if defined (__APPLE__)
         ProcessMachCore::Terminate();
         ProcessKDP::Terminate();
+        SymbolVendorMacOSX::Terminate();
 #endif
 #if defined(_MSC_VER)
         DynamicLoaderWindows::Terminate();

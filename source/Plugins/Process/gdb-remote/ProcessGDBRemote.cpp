@@ -2961,14 +2961,6 @@ ProcessGDBRemote::Initialize()
                                        GetPluginDescriptionStatic(),
                                        CreateInstance,
                                        DebuggerInitialize);
-
-        Log::Callbacks log_callbacks = {
-            ProcessGDBRemoteLog::DisableLog,
-            ProcessGDBRemoteLog::EnableLog,
-            ProcessGDBRemoteLog::ListLogCategories
-        };
-
-        Log::RegisterLogChannel (ProcessGDBRemote::GetPluginNameStatic(), log_callbacks);
     }
 }
 
@@ -3025,6 +3017,7 @@ ProcessGDBRemote::StopAsyncThread ()
 
         // Stop the stdio thread
         m_async_thread.Join(nullptr);
+        m_async_thread.Reset();
     }
     else if (log)
         log->Printf("ProcessGDBRemote::%s () - Called when Async thread was not running.", __FUNCTION__);
@@ -3169,7 +3162,6 @@ ProcessGDBRemote::AsyncThread (void *arg)
     if (log)
         log->Printf ("ProcessGDBRemote::%s (arg = %p, pid = %" PRIu64 ") thread exiting...", __FUNCTION__, arg, process->GetID());
 
-    process->m_async_thread.Reset();
     return NULL;
 }
 
