@@ -83,7 +83,7 @@ endif ()
 if ( CMAKE_SYSTEM_NAME MATCHES "FreeBSD" )
   list(APPEND LLDB_USED_LIBS
     lldbPluginProcessFreeBSD
-    ldbPluginProcessFreeBSDKernel
+    lldbPluginProcessFreeBSDKernel
     lldbPluginProcessPOSIX
     lldbPluginProcessElfCore
     lldbPluginDynamicLoaderFreeBSDKernel
