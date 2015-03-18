@@ -7,18 +7,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-//++
-// File:        MIDriver.cpp
-//
-// Overview:    CMIDriver implementation.
-//
-// Environment: Compilers:  Visual C++ 12.
-//                          gcc (Ubuntu/Linaro 4.8.1-10ubuntu9) 4.8.1
-//              Libraries:  See MIReadmetxt.
-//
-// Copyright:   None.
-//--
-
 // Third party headers:
 #include <stdarg.h> // va_list, va_start, var_end
 #include <iostream>
@@ -186,22 +174,6 @@ CMIDriver::Initialize(void)
     MI::ModuleInit<CMICmdMgr>(IDS_MI_INIT_ERR_CMDMGR, bOk, errMsg);
     bOk &= m_rLldbDebugger.SetDriver(*this);
     MI::ModuleInit<CMICmnLLDBDebugger>(IDS_MI_INIT_ERR_LLDBDEBUGGER, bOk, errMsg);
-
-#if MICONFIG_COMPILE_MIDRIVER_WITH_LLDBDRIVER
-    CMIDriverMgr &rDrvMgr = CMIDriverMgr::Instance();
-    bOk = bOk && rDrvMgr.RegisterDriver(*g_driver, "LLDB driver"); // Will be pass thru driver
-    if (bOk)
-    {
-        bOk = SetEnableFallThru(false); // This is intentional at this time - yet to be fully implemented
-        bOk = bOk && SetDriverToFallThruTo(*g_driver);
-        CMIUtilString strOtherDrvErrMsg;
-        if (bOk && GetEnableFallThru() && !g_driver->MISetup(strOtherDrvErrMsg))
-        {
-            bOk = false;
-            errMsg = CMIUtilString::Format(MIRSRC(IDS_MI_INIT_ERR_FALLTHRUDRIVER), strOtherDrvErrMsg.c_str());
-        }
-    }
-#endif // MICONFIG_COMPILE_MIDRIVER_WITH_LLDBDRIVER
 
     m_bExitApp = false;
 
@@ -415,8 +387,8 @@ CMIDriver::DoParseArgs(const int argc, const char *argv[], FILE *vpStdOut, bool 
 //          that are only handled by *this driver:
 //              --executable
 //          The application's options --interpreter and --executable in code act very similar.
-//          The --executable is necessary to differentiate whither the MI Driver is being
-//          using by a client i.e. Eclipse or from the command line. Eclipse issues the option
+//          The --executable is necessary to differentiate whether the MI Driver is being
+//          used by a client i.e. Eclipse or from the command line. Eclipse issues the option
 //          --interpreter and also passes additional arguments which can be interpreted as an
 //          executable if called from the command line. Using --executable tells the MI
 //          Driver is being called the command line and that the executable argument is indeed
@@ -473,13 +445,7 @@ CMIDriver::ParseArgs(const int argc, const char *argv[], FILE *vpStdOut, bool &v
 
     if (bHaveExecutableFileNamePath && bHaveExecutableLongOption)
     {
-// CODETAG_CMDLINE_ARG_EXECUTABLE_DEBUG_SESSION
-#if MICONFIG_ENABLE_MI_DRIVER_MI_MODE_CMDLINE_ARG_EXECUTABLE_DEBUG_SESSION
         SetDriverDebuggingArgExecutable();
-#else
-        vwbExiting = true;
-        errStatus.SetErrorString(MIRSRC(IDS_DRIVER_ERR_LOCAL_DEBUG_NOT_IMPL));
-#endif // MICONFIG_ENABLE_MI_DRIVER_MI_MODE_CMDLINE_ARG_EXECUTABLE_DEBUG_SESSION
     }
 
     return errStatus;
@@ -566,8 +532,6 @@ CMIDriver::DoMainLoop(void)
     // App is not quitting currently
     m_bExitApp = false;
 
-// CODETAG_CMDLINE_ARG_EXECUTABLE_DEBUG_SESSION
-#if MICONFIG_ENABLE_MI_DRIVER_MI_MODE_CMDLINE_ARG_EXECUTABLE_DEBUG_SESSION
     if (HaveExecutableFileNamePathOnCmdLine())
     {
         if (!LocalDebugSessionStartupExecuteCommands())
@@ -576,7 +540,6 @@ CMIDriver::DoMainLoop(void)
             return MIstatus::failure;
         }
     }
-#endif // MICONFIG_ENABLE_MI_DRIVER_MI_MODE_CMDLINE_ARG_EXECUTABLE_DEBUG_SESSION
 
     // While the app is active
     while (!m_bExitApp)

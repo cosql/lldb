@@ -7,18 +7,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-//++
-// File:        MIDriverMgr.cpp
-//
-// Overview:    CMIDriverMgr implementation.
-//
-// Environment: Compilers:  Visual C++ 12.
-//                          gcc (Ubuntu/Linaro 4.8.1-10ubuntu9) 4.8.1
-//              Libraries:  See MIReadmetxt.
-//
-// Copyright:   None.
-//--
-
 // Third Party Headers:
 #include "lldb/API/SBError.h"
 
@@ -551,11 +539,7 @@ CMIDriverMgr::ParseArgs(const int argc, const char *argv[], bool &vwbExiting)
     bool bHaveArgLog = false;
     bool bHaveArgHelp = false;
 
-// Hardcode the use of the MI driver
-#if MICONFIG_DEFAULT_TO_MI_DRIVER
     bHaveArgInterpret = true;
-#endif // MICONFIG_DEFAULT_TO_MI_DRIVER
-
     if (bHaveArgs)
     {
         // CODETAG_MIDRIVE_CMD_LINE_ARG_HANDLING

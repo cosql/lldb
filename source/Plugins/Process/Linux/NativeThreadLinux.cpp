@@ -15,6 +15,7 @@
 #include "NativeProcessLinux.h"
 #include "NativeRegisterContextLinux_arm64.h"
 #include "NativeRegisterContextLinux_x86_64.h"
+#include "NativeRegisterContextLinux_mips64.h"
 
 #include "lldb/Core/Log.h"
 #include "lldb/Core/State.h"
@@ -31,6 +32,7 @@
 #include "Plugins/Process/Utility/RegisterContextLinux_arm64.h"
 #include "Plugins/Process/Utility/RegisterContextLinux_i386.h"
 #include "Plugins/Process/Utility/RegisterContextLinux_x86_64.h"
+#include "Plugins/Process/Utility/RegisterContextLinux_mips64.h"
 #include "Plugins/Process/Utility/RegisterInfoInterface.h"
 
 using namespace lldb;
@@ -175,6 +177,12 @@ NativeThreadLinux::GetRegisterContext ()
                     reg_interface = static_cast<RegisterInfoInterface*> (new RegisterContextLinux_x86_64 (target_arch));
                 }
                 break;
+            case llvm::Triple::mips64:
+            case llvm::Triple::mips64el:
+                assert((HostInfo::GetArchitecture ().GetAddressByteSize() == 8)
+                    && "Register setting path assumes this is a 64-bit host");
+                reg_interface = static_cast<RegisterInfoInterface*>(new RegisterContextLinux_mips64 (target_arch));
+                break;
             default:
                 break;
             }
@@ -199,6 +207,13 @@ NativeThreadLinux::GetRegisterContext ()
             break;
         }
 #endif
+        case llvm::Triple::mips64:
+        case llvm::Triple::mips64el:
+        {
+            const uint32_t concrete_frame_idx = 0;
+            m_reg_context_sp.reset (new NativeRegisterContextLinux_mips64 (*this, concrete_frame_idx, reg_interface));
+            break;
+        }
         case llvm::Triple::aarch64:
         {
             const uint32_t concrete_frame_idx = 0;
@@ -367,36 +382,51 @@ NativeThreadLinux::SetStoppedByBreakpoint ()
 void
 NativeThreadLinux::SetStoppedByWatchpoint ()
 {
+    Log *log (GetLogIfAllCategoriesSet (LIBLLDB_LOG_THREAD));
+    lldb::pid_t pid = LLDB_INVALID_PROCESS_ID;
+    if (log)
+    {
+        NativeProcessProtocolSP process_sp = m_process_wp.lock ();
+        if (process_sp)
+            pid = process_sp->GetID ();
+    }
+
     const StateType new_state = StateType::eStateStopped;
     MaybeLogStateChange (new_state);
     m_state = new_state;
 
-    m_stop_info.reason = StopReason::eStopReasonWatchpoint;
-    m_stop_info.details.signal.signo = SIGTRAP;
-
-    NativeRegisterContextLinux_x86_64 *reg_ctx =
-        reinterpret_cast<NativeRegisterContextLinux_x86_64*> (GetRegisterContext().get());
-    const uint32_t num_hw_watchpoints =
-        reg_ctx->NumSupportedHardwareWatchpoints();
+    NativeRegisterContextSP reg_ctx = GetRegisterContext ();
+    const uint32_t num_hw_watchpoints = reg_ctx->NumSupportedHardwareWatchpoints ();
 
     m_stop_description.clear ();
     for (uint32_t wp_index = 0; wp_index < num_hw_watchpoints; ++wp_index)
-        if (reg_ctx->IsWatchpointHit(wp_index).Success())
+    {
+        if (reg_ctx->IsWatchpointHit (wp_index).Success())
         {
+            if (log)
+                log->Printf ("NativeThreadLinux:%s (pid=%" PRIu64 ", tid=%" PRIu64 ") watchpoint found with idx: %u",
+                             __FUNCTION__, pid, GetID (), wp_index);
+
             std::ostringstream ostr;
-            ostr << reg_ctx->GetWatchpointAddress(wp_index) << " " << wp_index;
+            ostr << reg_ctx->GetWatchpointAddress (wp_index) << " " << wp_index;
             m_stop_description = ostr.str();
+
+            m_stop_info.reason = StopReason::eStopReasonWatchpoint;
+            m_stop_info.details.signal.signo = SIGTRAP;
             return;
         }
-    Log *log (GetLogIfAllCategoriesSet (LIBLLDB_LOG_THREAD));
-    if (log)
-    {
-        NativeProcessProtocolSP m_process_sp = m_process_wp.lock ();
-        lldb::pid_t pid = m_process_sp ? m_process_sp->GetID () : LLDB_INVALID_PROCESS_ID;
-        log->Printf ("NativeThreadLinux: thread (pid=%" PRIu64 ", tid=%" PRIu64 ") "
-                "stopped by a watchpoint, but failed to find it",
-                pid, GetID ());
     }
+
+    // The process reported a watchpoint was hit, but we haven't found the
+    // watchpoint. Assume that a stopped by trace is reported as a hardware
+    // watchpoint what happens on some linux kernels (e.g.: android-arm64
+    // platfrom-21).
+
+    if (log)
+        log->Printf ("NativeThreadLinux:%s (pid=%" PRIu64 ", tid=%" PRIu64 ") none of the watchpoint was hit.",
+                     __FUNCTION__, pid, GetID ());
+
+    SetStoppedByTrace ();
 }
 
 bool
