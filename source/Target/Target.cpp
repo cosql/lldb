@@ -1259,6 +1259,24 @@ Target::ModulesDidLoad (ModuleList &module_list)
         if (m_process_sp)
         {
             m_process_sp->ModulesDidLoad (module_list);
+
+            // This assumes there can only be one libobjc loaded.
+            ObjCLanguageRuntime *objc_runtime = m_process_sp->GetObjCLanguageRuntime ();
+            if (objc_runtime && !objc_runtime->HasReadObjCLibrary ())
+            {
+                Mutex::Locker locker (module_list.GetMutex ());
+
+                size_t num_modules = module_list.GetSize();
+                for (size_t i = 0; i < num_modules; i++)
+                {
+                    auto mod = module_list.GetModuleAtIndex (i);
+                    if (objc_runtime->IsModuleObjCLibrary (mod))
+                    {
+                        objc_runtime->ReadObjCLibrary (mod);
+                        break;
+                    }
+                }
+            }
         }
         BroadcastEvent (eBroadcastBitModulesLoaded, new TargetEventData (this->shared_from_this(), module_list));
     }
@@ -2573,41 +2591,58 @@ Target::Launch (ProcessLaunchInfo &launch_info, Stream *stream)
 
     if (error.Success())
     {
-        if (launch_info.GetFlags().Test(eLaunchFlagStopAtEntry) == false)
+        if (synchronous_execution || launch_info.GetFlags().Test(eLaunchFlagStopAtEntry) == false)
         {
+            EventSP event_sp;
             ListenerSP hijack_listener_sp (launch_info.GetHijackListener());
 
-            StateType state = m_process_sp->WaitForProcessToStop (NULL, NULL, false, hijack_listener_sp.get(), NULL);
+            StateType state = m_process_sp->WaitForProcessToStop (NULL, &event_sp, false, hijack_listener_sp.get(), NULL);
             
             if (state == eStateStopped)
             {
-                if (!synchronous_execution)
-                    m_process_sp->RestoreProcessEvents ();
-
-                error = m_process_sp->PrivateResume();
-
-                if (error.Success())
+                if (launch_info.GetFlags().Test(eLaunchFlagStopAtEntry) == false)
                 {
-                    // there is a race condition where this thread will return up the call stack to the main command
-                    // handler and show an (lldb) prompt before HandlePrivateEvent (from PrivateStateThread) has
-                    // a chance to call PushProcessIOHandler()
-                    m_process_sp->SyncIOHandler(2000);
+                    if (!synchronous_execution)
+                        m_process_sp->RestoreProcessEvents ();
 
-                    if (synchronous_execution)
+                    error = m_process_sp->PrivateResume();
+
+                    if (error.Success())
                     {
-                        state = m_process_sp->WaitForProcessToStop (NULL, NULL, true, hijack_listener_sp.get(), stream);
-                        const bool must_be_alive = false; // eStateExited is ok, so this must be false
-                        if (!StateIsStoppedState(state, must_be_alive))
+                        // there is a race condition where this thread will return up the call stack to the main command
+                        // handler and show an (lldb) prompt before HandlePrivateEvent (from PrivateStateThread) has
+                        // a chance to call PushProcessIOHandler()
+                        m_process_sp->SyncIOHandler(2000);
+
+                        if (synchronous_execution)
                         {
-                            error.SetErrorStringWithFormat("process isn't stopped: %s", StateAsCString(state));
+                            state = m_process_sp->WaitForProcessToStop (NULL, NULL, true, hijack_listener_sp.get(), stream);
+                            const bool must_be_alive = false; // eStateExited is ok, so this must be false
+                            if (!StateIsStoppedState(state, must_be_alive))
+                            {
+                                error.SetErrorStringWithFormat("process isn't stopped: %s", StateAsCString(state));
+                            }
                         }
+                    }
+                    else
+                    {
+                        Error error2;
+                        error2.SetErrorStringWithFormat("process resume at entry point failed: %s", error.AsCString());
+                        error = error2;
                     }
                 }
                 else
                 {
-                    Error error2;
-                    error2.SetErrorStringWithFormat("process resume at entry point failed: %s", error.AsCString());
-                    error = error2;
+                    assert(synchronous_execution && launch_info.GetFlags().Test(eLaunchFlagStopAtEntry) == true);
+
+                    // Target was stopped at entry as was intended. Need to notify the listeners about it.
+                    m_process_sp->RestoreProcessEvents();
+                    m_process_sp->HandlePrivateEvent(event_sp);
+
+                    // there is a race condition where this thread will return up the call stack to the main command
+                    // handler and show an (lldb) prompt before HandlePrivateEvent (from PrivateStateThread) has
+                    // a chance to call PushProcessIOHandler()
+                    m_process_sp->SyncIOHandler(2000);
                 }
             }
             else if (state == eStateExited)
