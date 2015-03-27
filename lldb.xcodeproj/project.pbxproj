@@ -924,6 +924,10 @@
 		B2B7CCF015D1C20F00EEFB57 /* WatchpointOptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B7CCEF15D1C20F00EEFB57 /* WatchpointOptions.cpp */; };
 		E769331C1A94D15400C73337 /* lldb-gdbserver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 26D6F3F4183E7F9300194858 /* lldb-gdbserver.cpp */; };
 		E769331E1A94D18100C73337 /* lldb-server.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E769331D1A94D18100C73337 /* lldb-server.cpp */; };
+		E7723D441AC4A7FB002BA082 /* RegisterContextPOSIXCore_arm64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E7723D421AC4A7FB002BA082 /* RegisterContextPOSIXCore_arm64.cpp */; };
+		E7723D451AC4A7FB002BA082 /* RegisterContextPOSIXCore_arm64.h in Headers */ = {isa = PBXBuildFile; fileRef = E7723D431AC4A7FB002BA082 /* RegisterContextPOSIXCore_arm64.h */; };
+		E7723D481AC4A8C8002BA082 /* RegisterContextFreeBSD_arm64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E7723D461AC4A8C8002BA082 /* RegisterContextFreeBSD_arm64.cpp */; };
+		E7723D4C1AC4A944002BA082 /* RegisterContextPOSIX_arm64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E7723D4A1AC4A944002BA082 /* RegisterContextPOSIX_arm64.cpp */; };
 		ED88244E15114A9200BC98B9 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDB919B414F6F10D008FF64B /* Security.framework */; };
 		ED88245015114CA200BC98B9 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = ED88244F15114CA200BC98B9 /* main.mm */; };
 		ED88245115114CA200BC98B9 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = ED88244F15114CA200BC98B9 /* main.mm */; };
@@ -2673,6 +2677,12 @@
 		B2B7CCEF15D1C20F00EEFB57 /* WatchpointOptions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WatchpointOptions.cpp; path = source/Breakpoint/WatchpointOptions.cpp; sourceTree = "<group>"; };
 		B2D3033612EFA5C500F84EB3 /* InstructionUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InstructionUtils.h; path = Utility/InstructionUtils.h; sourceTree = "<group>"; };
 		E769331D1A94D18100C73337 /* lldb-server.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "lldb-server.cpp"; path = "tools/lldb-server/lldb-server.cpp"; sourceTree = "<group>"; };
+		E7723D421AC4A7FB002BA082 /* RegisterContextPOSIXCore_arm64.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RegisterContextPOSIXCore_arm64.cpp; sourceTree = "<group>"; };
+		E7723D431AC4A7FB002BA082 /* RegisterContextPOSIXCore_arm64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RegisterContextPOSIXCore_arm64.h; sourceTree = "<group>"; };
+		E7723D461AC4A8C8002BA082 /* RegisterContextFreeBSD_arm64.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = RegisterContextFreeBSD_arm64.cpp; path = Utility/RegisterContextFreeBSD_arm64.cpp; sourceTree = "<group>"; };
+		E7723D471AC4A8C8002BA082 /* RegisterContextFreeBSD_arm64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RegisterContextFreeBSD_arm64.h; path = Utility/RegisterContextFreeBSD_arm64.h; sourceTree = "<group>"; };
+		E7723D4A1AC4A944002BA082 /* RegisterContextPOSIX_arm64.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = RegisterContextPOSIX_arm64.cpp; path = Utility/RegisterContextPOSIX_arm64.cpp; sourceTree = "<group>"; };
+		E7723D4B1AC4A944002BA082 /* RegisterContextPOSIX_arm64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RegisterContextPOSIX_arm64.h; path = Utility/RegisterContextPOSIX_arm64.h; sourceTree = "<group>"; };
 		ED88244F15114CA200BC98B9 /* main.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
 		ED88245215114CFC00BC98B9 /* LauncherRootXPCService.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = LauncherRootXPCService.mm; sourceTree = "<group>"; };
 		EDB919B214F6EC85008FF64B /* LauncherXPCService.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LauncherXPCService.h; sourceTree = "<group>"; };
@@ -3761,6 +3771,10 @@
 		26B4666E11A2080F00CF6220 /* Utility */ = {
 			isa = PBXGroup;
 			children = (
+				E7723D4A1AC4A944002BA082 /* RegisterContextPOSIX_arm64.cpp */,
+				E7723D4B1AC4A944002BA082 /* RegisterContextPOSIX_arm64.h */,
+				E7723D461AC4A8C8002BA082 /* RegisterContextFreeBSD_arm64.cpp */,
+				E7723D471AC4A8C8002BA082 /* RegisterContextFreeBSD_arm64.h */,
 				B287E63E12EFAE2C00C9BEFE /* ARMDefines.h */,
 				B23DD24F12EDFAC1000C3894 /* ARMUtils.h */,
 				26954EBC1401EE8B00294D09 /* DynamicRegisterInfo.cpp */,
@@ -3848,6 +3862,8 @@
 		26BC179F18C7F4CB00D2196D /* elf-core */ = {
 			isa = PBXGroup;
 			children = (
+				E7723D421AC4A7FB002BA082 /* RegisterContextPOSIXCore_arm64.cpp */,
+				E7723D431AC4A7FB002BA082 /* RegisterContextPOSIXCore_arm64.h */,
 				26BC17A218C7F4CB00D2196D /* ProcessElfCore.cpp */,
 				26BC17A318C7F4CB00D2196D /* ProcessElfCore.h */,
 				26BC17A418C7F4CB00D2196D /* RegisterContextPOSIXCore_mips64.cpp */,
@@ -5285,6 +5301,7 @@
 				945759681534941F005A9070 /* PlatformPOSIX.h in Headers */,
 				26B1EFAF154638AF00E2DAC7 /* DWARFDeclContext.h in Headers */,
 				260CC62E15D04377002BF2E0 /* OptionValueArgs.h in Headers */,
+				E7723D451AC4A7FB002BA082 /* RegisterContextPOSIXCore_arm64.h in Headers */,
 				AF0E22F118A09FB20009B7D1 /* AppleGetItemInfoHandler.h in Headers */,
 				260CC62F15D04377002BF2E0 /* OptionValueArray.h in Headers */,
 				26474CD418D0CB710073DEBA /* RegisterInfos_mips64.h in Headers */,
@@ -5979,6 +5996,7 @@
 				2689005613353E0400698AC0 /* Value.cpp in Sources */,
 				2689005713353E0400698AC0 /* ValueObject.cpp in Sources */,
 				2689005813353E0400698AC0 /* ValueObjectChild.cpp in Sources */,
+				E7723D441AC4A7FB002BA082 /* RegisterContextPOSIXCore_arm64.cpp in Sources */,
 				233B007F1960CB280090E598 /* ProcessLaunchInfo.cpp in Sources */,
 				2689005913353E0400698AC0 /* ValueObjectConstResult.cpp in Sources */,
 				2689005A13353E0400698AC0 /* ValueObjectList.cpp in Sources */,
@@ -6189,6 +6207,7 @@
 				2689011113353E8200698AC0 /* StringExtractor.cpp in Sources */,
 				2689011213353E8200698AC0 /* StringExtractorGDBRemote.cpp in Sources */,
 				2689011313353E8200698AC0 /* PseudoTerminal.cpp in Sources */,
+				E7723D4C1AC4A944002BA082 /* RegisterContextPOSIX_arm64.cpp in Sources */,
 				94D6A0AA16CEB55F00833B6E /* NSArray.cpp in Sources */,
 				26BC17AB18C7F4CB00D2196D /* ProcessElfCore.cpp in Sources */,
 				AF1F7B07189C904B0087DB9C /* AppleGetPendingItemsHandler.cpp in Sources */,
@@ -6220,6 +6239,7 @@
 				9A4F35101368A51A00823F52 /* StreamAsynchronousIO.cpp in Sources */,
 				2692BA15136610C100F9E14D /* UnwindAssemblyInstEmulation.cpp in Sources */,
 				263E949F13661AEA00E7D1CE /* UnwindAssembly-x86.cpp in Sources */,
+				E7723D481AC4A8C8002BA082 /* RegisterContextFreeBSD_arm64.cpp in Sources */,
 				3FDFDDBD199C3A06009756A7 /* FileAction.cpp in Sources */,
 				264D8D5013661BD7003A368F /* UnwindAssembly.cpp in Sources */,
 				AF23B4DB19009C66003E2A58 /* FreeBSDSignals.cpp in Sources */,

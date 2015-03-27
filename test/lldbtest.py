@@ -339,41 +339,41 @@ def system(commands, **kwargs):
     # Assign the sender object to variable 'test' and remove it from kwargs.
     test = kwargs.pop('sender', None)
 
-    separator = None
-    separator = " && " if os.name == "nt" else "; "
     # [['make', 'clean', 'foo'], ['make', 'foo']] -> ['make clean foo', 'make foo']
     commandList = [' '.join(x) for x in commands]
-    # ['make clean foo', 'make foo'] -> 'make clean foo; make foo'
-    shellCommand = separator.join(commandList)
+    output = ""
+    error = ""
+    for shellCommand in commandList:
+        if 'stdout' in kwargs:
+            raise ValueError('stdout argument not allowed, it will be overridden.')
+        if 'shell' in kwargs and kwargs['shell']==False:
+            raise ValueError('shell=False not allowed')
+        process = Popen(shellCommand, stdout=PIPE, stderr=PIPE, shell=True, **kwargs)
+        pid = process.pid
+        this_output, this_error = process.communicate()
+        retcode = process.poll()
 
-    if 'stdout' in kwargs:
-        raise ValueError('stdout argument not allowed, it will be overridden.')
-    if 'shell' in kwargs and kwargs['shell']==False:
-        raise ValueError('shell=False not allowed')
-    process = Popen(shellCommand, stdout=PIPE, stderr=PIPE, shell=True, **kwargs)
-    pid = process.pid
-    output, error = process.communicate()
-    retcode = process.poll()
+        # Enable trace on failure return while tracking down FreeBSD buildbot issues
+        trace = traceAlways
+        if not trace and retcode and sys.platform.startswith("freebsd"):
+            trace = True
 
-    # Enable trace on failure return while tracking down FreeBSD buildbot issues
-    trace = traceAlways
-    if not trace and retcode and sys.platform.startswith("freebsd"):
-        trace = True
+        with recording(test, trace) as sbuf:
+            print >> sbuf
+            print >> sbuf, "os command:", shellCommand
+            print >> sbuf, "with pid:", pid
+            print >> sbuf, "stdout:", output
+            print >> sbuf, "stderr:", error
+            print >> sbuf, "retcode:", retcode
+            print >> sbuf
 
-    with recording(test, trace) as sbuf:
-        print >> sbuf
-        print >> sbuf, "os command:", shellCommand
-        print >> sbuf, "with pid:", pid
-        print >> sbuf, "stdout:", output
-        print >> sbuf, "stderr:", error
-        print >> sbuf, "retcode:", retcode
-        print >> sbuf
-
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = shellCommand
-        raise CalledProcessError(retcode, cmd)
+        if retcode:
+            cmd = kwargs.get("args")
+            if cmd is None:
+                cmd = shellCommand
+            raise CalledProcessError(retcode, cmd)
+        output = output + this_output
+        error = error + this_error
     return (output, error)
 
 def getsource_if_available(obj):
@@ -549,57 +549,60 @@ def expectedFailure(expected_fn, bugnumber=None):
             if expected_fn(self):
                 raise case._UnexpectedSuccess(sys.exc_info(), bugnumber)
         return wrapper
-    if bugnumber: 
-        if callable(bugnumber):
-            return expectedFailure_impl(bugnumber)
-        else:
-            return expectedFailure_impl
+    # if bugnumber is not-callable(incluing None), that means decorator function is called with optional arguments
+    # return decorator in this case, so it will be used to decorating original method
+    if callable(bugnumber):
+        return expectedFailure_impl(bugnumber)
+    else:
+        return expectedFailure_impl
 
 def expectedFailureCompiler(compiler, compiler_version=None, bugnumber=None):
     if compiler_version is None:
         compiler_version=['=', None]
     def fn(self):
         return compiler in self.getCompiler() and self.expectedCompilerVersion(compiler_version)
-    if bugnumber: return expectedFailure(fn, bugnumber)
+    return expectedFailure(fn, bugnumber)
 
 # to XFAIL a specific clang versions, try this
 # @expectedFailureClang('bugnumber', ['<=', '3.4'])
 def expectedFailureClang(bugnumber=None, compiler_version=None):
-    if bugnumber: return expectedFailureCompiler('clang', compiler_version, bugnumber)
+    return expectedFailureCompiler('clang', compiler_version, bugnumber)
 
 def expectedFailureGcc(bugnumber=None, compiler_version=None):
-    if bugnumber: return expectedFailureCompiler('gcc', compiler_version, bugnumber)
+    return expectedFailureCompiler('gcc', compiler_version, bugnumber)
 
 def expectedFailureIcc(bugnumber=None):
-    if bugnumber: return expectedFailureCompiler('icc', None, bugnumber)
+    return expectedFailureCompiler('icc', None, bugnumber)
 
 def expectedFailureArch(arch, bugnumber=None):
     def fn(self):
         return arch in self.getArchitecture()
-    if bugnumber: return expectedFailure(fn, bugnumber)
+    return expectedFailure(fn, bugnumber)
 
 def expectedFailurei386(bugnumber=None):
-    if bugnumber: return expectedFailureArch('i386', bugnumber)
+    return expectedFailureArch('i386', bugnumber)
 
 def expectedFailurex86_64(bugnumber=None):
-    if bugnumber: return expectedFailureArch('x86_64', bugnumber)
+    return expectedFailureArch('x86_64', bugnumber)
 
-def expectedFailureOS(os, bugnumber=None, compilers=None):
+def expectedFailureOS(oslist, bugnumber=None, compilers=None):
     def fn(self):
-        return os in sys.platform and self.expectedCompiler(compilers)
-    if bugnumber: return expectedFailure(fn, bugnumber)
+        return (lldb.DBG.GetSelectedPlatform().GetTriple().split('-')[2] in oslist and
+                self.expectedCompiler(compilers))
+    return expectedFailure(fn, bugnumber)
 
 def expectedFailureDarwin(bugnumber=None, compilers=None):
-    if bugnumber: return expectedFailureOS('darwin', bugnumber, compilers)
+    # For legacy reasons, we support both "darwin" and "macosx" as OS X triples.
+    return expectedFailureOS(['darwin', 'macosx'], bugnumber, compilers)
 
 def expectedFailureFreeBSD(bugnumber=None, compilers=None):
-    if bugnumber: return expectedFailureOS('freebsd', bugnumber, compilers)
+    return expectedFailureOS(['freebsd'], bugnumber, compilers)
 
 def expectedFailureLinux(bugnumber=None, compilers=None):
-    if bugnumber: return expectedFailureOS('linux', bugnumber, compilers)
+    return expectedFailureOS(['linux'], bugnumber, compilers)
 
 def expectedFailureWindows(bugnumber=None, compilers=None):
-    if bugnumber: return expectedFailureOS('win32', bugnumber, compilers)
+    return expectedFailureOS(['windows'], bugnumber, compilers)
 
 def expectedFailureLLGS(bugnumber=None, compilers=None):
     def fn(self):
@@ -608,7 +611,7 @@ def expectedFailureLLGS(bugnumber=None, compilers=None):
             return False
         self.runCmd('settings show platform.plugin.linux.use-llgs-for-local')
         return 'true' in self.res.GetOutput() and self.expectedCompiler(compilers)
-    if bugnumber: return expectedFailure(fn, bugnumber)
+    return expectedFailure(fn, bugnumber)
 
 def skipIfRemote(func):
     """Decorate the item to skip tests if testing remotely."""
@@ -646,7 +649,7 @@ def skipIfFreeBSD(func):
     def wrapper(*args, **kwargs):
         from unittest2 import case
         self = args[0]
-        platform = sys.platform
+        platform = lldb.DBG.GetSelectedPlatform().GetTriple().split('-')[2]
         if "freebsd" in platform:
             self.skipTest("skip on FreeBSD")
         else:
@@ -661,7 +664,7 @@ def skipIfLinux(func):
     def wrapper(*args, **kwargs):
         from unittest2 import case
         self = args[0]
-        platform = sys.platform
+        platform = lldb.DBG.GetSelectedPlatform().GetTriple().split('-')[2]
         if "linux" in platform:
             self.skipTest("skip on linux")
         else:
@@ -695,8 +698,8 @@ def skipIfWindows(func):
     def wrapper(*args, **kwargs):
         from unittest2 import case
         self = args[0]
-        platform = sys.platform
-        if "win32" in platform:
+        platform = lldb.DBG.GetSelectedPlatform().GetTriple().split('-')[2]
+        if "windows" in platform:
             self.skipTest("skip on Windows")
         else:
             func(*args, **kwargs)
@@ -710,8 +713,8 @@ def skipIfDarwin(func):
     def wrapper(*args, **kwargs):
         from unittest2 import case
         self = args[0]
-        platform = sys.platform
-        if "darwin" in platform:
+        platform = lldb.DBG.GetSelectedPlatform().GetTriple().split('-')[2]
+        if "darwin" in platform or "macosx" in platform:
             self.skipTest("skip on darwin")
         else:
             func(*args, **kwargs)
@@ -1899,8 +1902,6 @@ class TestBase(Base):
         #import traceback
         #traceback.print_stack()
 
-        Base.tearDown(self)
-
         # Delete the target(s) from the debugger as a general cleanup step.
         # This includes terminating the process for each target, if any.
         # We'd like to reuse the debugger for our next test without incurring
@@ -1920,6 +1921,11 @@ class TestBase(Base):
         if lldb.post_flight:
             lldb.post_flight(self)
 
+        # Do this last, to make sure it's in reverse order from how we setup.
+        Base.tearDown(self)
+
+        # This must be the last statement, otherwise teardown hooks or other
+        # lines might depend on this still being active.
         del self.dbg
 
     def switch_to_thread_with_stop_reason(self, stop_reason):
