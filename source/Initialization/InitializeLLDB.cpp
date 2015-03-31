@@ -224,9 +224,7 @@ InitializePrivate()
     ProcessWindows::Initialize();
 #endif
 #if defined(__FreeBSD__)
-    DynamicLoaderFreeBSDKernel::Initialize();
     ProcessFreeBSD::Initialize();
-    ProcessFreeBSDKernel::Initialize();
 #endif
 #if defined(__APPLE__)
     SymbolVendorMacOSX::Initialize();
@@ -337,9 +335,7 @@ TerminatePrivate()
 #endif
 
 #if defined(__FreeBSD__)
-    DynamicLoaderFreeBSDKernel::Terminate();
     ProcessFreeBSD::Terminate();
-    ProcessFreeBSDKernel::Terminate();
 #endif
     Debugger::SettingsTerminate();
 
