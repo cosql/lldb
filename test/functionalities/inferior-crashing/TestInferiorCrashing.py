@@ -2,7 +2,7 @@
 
 import os, time
 import unittest2
-import lldb, lldbutil
+import lldb, lldbutil, lldbplatformutil
 from lldbtest import *
 
 class CrashingInferiorTestCase(TestBase):
@@ -87,7 +87,7 @@ class CrashingInferiorTestCase(TestBase):
         lldbutil.run_break_set_by_file_and_line (self, "main.c", line, num_expected_locations=1, loc_exact=True)
 
     def check_stop_reason(self):
-        if sys.platform.startswith("darwin"):
+        if self.getPlatform() == "darwin":
             stop_reason = 'stop reason = EXC_BAD_ACCESS'
         else:
             stop_reason = 'stop reason = invalid address'
@@ -153,8 +153,7 @@ class CrashingInferiorTestCase(TestBase):
         self.check_stop_reason()
 
         # lldb should be able to read from registers from the inferior after crashing.
-        self.expect("register read eax",
-            substrs = ['eax = 0x'])
+        lldbplatformutil.check_first_register_readable(self)
 
     def inferior_crashing_expr(self):
         """Test that the lldb expression interpreter can read symbols after crashing."""
@@ -193,8 +192,7 @@ class CrashingInferiorTestCase(TestBase):
             substrs = ['= 0x0'])
 
         # lldb should be able to read from registers from the inferior after crashing.
-        self.expect("register read eax",
-            substrs = ['eax = 0x'])
+        lldbplatformutil.check_first_register_readable(self)
 
         # And it should report the correct line number.
         self.expect("thread backtrace all",

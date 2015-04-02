@@ -2,7 +2,7 @@
 
 import os, time
 import unittest2
-import lldb, lldbutil
+import lldb, lldbutil, lldbplatformutil
 import sys
 from lldbtest import *
 
@@ -90,7 +90,7 @@ class CrashingRecursiveInferiorTestCase(TestBase):
         lldbutil.run_break_set_by_file_and_line (self, "main.c", line, num_expected_locations=1, loc_exact=True)
 
     def check_stop_reason(self):
-        if sys.platform.startswith("darwin"):
+        if self.getPlatform() == "darwin":
             stop_reason = 'stop reason = EXC_BAD_ACCESS'
         else:
             stop_reason = 'stop reason = invalid address'
@@ -157,8 +157,7 @@ class CrashingRecursiveInferiorTestCase(TestBase):
         self.check_stop_reason()
 
         # lldb should be able to read from registers from the inferior after crashing.
-        self.expect("register read eax",
-            substrs = ['eax = 0x'])
+        lldbplatformutil.check_first_register_readable(self)
 
     def recursive_inferior_crashing_expr(self):
         """Test that the lldb expression interpreter can read symbols after crashing."""
@@ -192,8 +191,7 @@ class CrashingRecursiveInferiorTestCase(TestBase):
             substrs = ['(int) $0 ='])
 
         # lldb should be able to read from registers from the inferior after crashing.
-        self.expect("register read eax",
-            substrs = ['eax = 0x'])
+        lldbplatformutil.check_first_register_readable(self)
 
         # And it should report the correct line number.
         self.expect("thread backtrace all",
@@ -209,13 +207,13 @@ class CrashingRecursiveInferiorTestCase(TestBase):
         self.check_stop_reason()
 
         expected_state = 'exited' # Provide the exit code.
-        if sys.platform.startswith("darwin"):
+        if self.getPlatform() == "darwin":
             expected_state = 'stopped' # TODO: Determine why 'next' and 'continue' have no effect after a crash.
 
         self.expect("next",
             substrs = ['Process', expected_state])
 
-        if not(sys.platform.startswith("darwin")): # if stopped, we will have a process around
+        if self.getPlatform() != "darwin": # if stopped, we will have a process around
             self.expect("thread list", error=True,substrs = ['Process must be launched'])
 
     def recursive_inferior_crashing_expr_step_expr(self):
