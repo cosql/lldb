@@ -1,4 +1,4 @@
-"""Test that importing modules in Objective-C works as expected."""
+"""Test that DWARF types are trusted over module types"""
 
 import os, time
 import unittest2
@@ -10,7 +10,7 @@ from distutils.version import StrictVersion
 
 from lldbtest import *
 
-class ObjCModulesTestCase(TestBase):
+class IncompleteModulesTestCase(TestBase):
 
     mydir = TestBase.compute_mydir(__file__)
 
@@ -67,21 +67,14 @@ class ObjCModulesTestCase(TestBase):
 
         self.common_setup()
 
-        self.expect("expr @import Foundation; 3", VARIABLES_DISPLAYED_CORRECTLY,
+        self.runCmd("settings set target.clang-module-search-paths \"" + os.getcwd() + "\"")
+
+        self.expect("expr @import myModule; 3", VARIABLES_DISPLAYED_CORRECTLY,
             substrs = ["int", "3"])
 
-        self.expect("expr string.length", VARIABLES_DISPLAYED_CORRECTLY,
-            substrs = ["NSUInteger", "5"])
+        self.expect("expr [myObject privateMethod]", VARIABLES_DISPLAYED_CORRECTLY,
+            substrs = ["int", "5"])
 
-        self.expect("expr array.count", VARIABLES_DISPLAYED_CORRECTLY,
-            substrs = ["NSUInteger", "3"])
-
-        self.expect("p *[NSURL URLWithString:@\"http://lldb.llvm.org\"]", VARIABLES_DISPLAYED_CORRECTLY,
-            substrs = ["NSURL", "isa", "_urlString"])
-
-        self.expect("p [NSURL URLWithString:@\"http://lldb.llvm.org\"].scheme", VARIABLES_DISPLAYED_CORRECTLY,
-            substrs = ["http"])
-            
 if __name__ == '__main__':
     import atexit
     lldb.SBDebugger.Initialize()
