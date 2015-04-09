@@ -1357,7 +1357,7 @@ IRForTarget::MaterializeInitializer (uint8_t *data, Constant *initializer)
     lldb_private::Log *log(lldb_private::GetLogIfAllCategoriesSet (LIBLLDB_LOG_EXPRESSIONS));
 
     if (log && log->GetVerbose())
-        log->Printf("  MaterializeInitializer(%p, %s)", data, PrintValue(initializer).c_str());
+        log->Printf("  MaterializeInitializer(%p, %s)", (void *)data, PrintValue(initializer).c_str());
 
     Type *initializer_type = initializer->getType();
 
@@ -2455,10 +2455,11 @@ IRForTarget::BuildRelocation(llvm::Type *type, uint64_t offset)
 
     llvm::ArrayRef<llvm::Constant *> offsets(offset_array, 1);
 
-    llvm::Constant *reloc_getelementptr = ConstantExpr::getGetElementPtr(type, m_reloc_placeholder, offsets);
-    llvm::Constant *reloc_getbitcast = ConstantExpr::getBitCast(reloc_getelementptr, type);
+    llvm::Constant *reloc_placeholder_bitcast = ConstantExpr::getBitCast(m_reloc_placeholder, type->getPointerTo());
+    llvm::Constant *reloc_getelementptr = ConstantExpr::getGetElementPtr(type, reloc_placeholder_bitcast, offsets);
+    llvm::Constant *reloc_bitcast = ConstantExpr::getBitCast(reloc_getelementptr, type);
 
-    return reloc_getbitcast;
+    return reloc_bitcast;
 }
 
 bool
