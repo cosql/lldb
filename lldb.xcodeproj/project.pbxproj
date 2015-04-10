@@ -603,6 +603,8 @@
 		26B42C4D1187ABA50079C8C8 /* LLDB.h in Headers */ = {isa = PBXBuildFile; fileRef = 26B42C4C1187ABA50079C8C8 /* LLDB.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		26B7564E14F89356008D9CB3 /* PlatformiOSSimulator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 26B7564C14F89356008D9CB3 /* PlatformiOSSimulator.cpp */; };
 		26B7564F14F89356008D9CB3 /* PlatformiOSSimulator.h in Headers */ = {isa = PBXBuildFile; fileRef = 26B7564D14F89356008D9CB3 /* PlatformiOSSimulator.h */; };
+		26B75B441AD6E29A001F7A57 /* MipsLinuxSignals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 26B75B421AD6E29A001F7A57 /* MipsLinuxSignals.cpp */; };
+		26B75B451AD6E29A001F7A57 /* MipsLinuxSignals.h in Headers */ = {isa = PBXBuildFile; fileRef = 26B75B431AD6E29A001F7A57 /* MipsLinuxSignals.h */; };
 		26B8283D142D01E9002DBC64 /* SBSection.h in Headers */ = {isa = PBXBuildFile; fileRef = 26B8283C142D01E9002DBC64 /* SBSection.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		26B82840142D020F002DBC64 /* SBSection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 26B8283F142D020F002DBC64 /* SBSection.cpp */; };
 		26BC179918C7F2B300D2196D /* JITLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 26BC179718C7F2B300D2196D /* JITLoader.cpp */; };
@@ -714,6 +716,8 @@
 		4959511D1A1BC49500F6F8FC /* ClangModulesDeclVendor.h in Headers */ = {isa = PBXBuildFile; fileRef = 4959511B1A1BC48100F6F8FC /* ClangModulesDeclVendor.h */; };
 		4959511F1A1BC4BC00F6F8FC /* ClangModulesDeclVendor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4959511E1A1BC4BC00F6F8FC /* ClangModulesDeclVendor.cpp */; };
 		4966DCC4148978A10028481B /* ClangExternalASTSourceCommon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4966DCC3148978A10028481B /* ClangExternalASTSourceCommon.cpp */; };
+		49724D991AD6ED390033C538 /* RenderScriptRuntime.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49724D971AD6ED390033C538 /* RenderScriptRuntime.cpp */; };
+		49724D9A1AD6ED390033C538 /* RenderScriptRuntime.h in Headers */ = {isa = PBXBuildFile; fileRef = 49724D981AD6ED390033C538 /* RenderScriptRuntime.h */; };
 		49A1CAC51430E8DE00306AC9 /* ExpressionSourceCode.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49A1CAC31430E8BD00306AC9 /* ExpressionSourceCode.cpp */; };
 		49A71FE7141FFA5C00D59478 /* IRInterpreter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 496B01581406DE8900F830D5 /* IRInterpreter.cpp */; };
 		49A71FE8141FFACF00D59478 /* DataEncoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 268ED0A4140FF54200DE830F /* DataEncoder.cpp */; };
@@ -1767,6 +1771,8 @@
 		26B4E26E112F35F700AB3F64 /* TimeValue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TimeValue.h; path = include/lldb/Host/TimeValue.h; sourceTree = "<group>"; };
 		26B7564C14F89356008D9CB3 /* PlatformiOSSimulator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PlatformiOSSimulator.cpp; sourceTree = "<group>"; };
 		26B7564D14F89356008D9CB3 /* PlatformiOSSimulator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlatformiOSSimulator.h; sourceTree = "<group>"; };
+		26B75B421AD6E29A001F7A57 /* MipsLinuxSignals.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MipsLinuxSignals.cpp; path = Utility/MipsLinuxSignals.cpp; sourceTree = "<group>"; };
+		26B75B431AD6E29A001F7A57 /* MipsLinuxSignals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MipsLinuxSignals.h; path = Utility/MipsLinuxSignals.h; sourceTree = "<group>"; };
 		26B8283C142D01E9002DBC64 /* SBSection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SBSection.h; path = include/lldb/API/SBSection.h; sourceTree = "<group>"; };
 		26B8283F142D020F002DBC64 /* SBSection.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SBSection.cpp; path = source/API/SBSection.cpp; sourceTree = "<group>"; };
 		26B8B42212EEC52A00A831B2 /* UniqueDWARFASTType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UniqueDWARFASTType.h; sourceTree = "<group>"; };
@@ -2263,6 +2269,8 @@
 		4966DCC3148978A10028481B /* ClangExternalASTSourceCommon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ClangExternalASTSourceCommon.cpp; path = source/Symbol/ClangExternalASTSourceCommon.cpp; sourceTree = "<group>"; };
 		496B01581406DE8900F830D5 /* IRInterpreter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IRInterpreter.cpp; path = source/Expression/IRInterpreter.cpp; sourceTree = "<group>"; };
 		496B015A1406DEB100F830D5 /* IRInterpreter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IRInterpreter.h; path = include/lldb/Expression/IRInterpreter.h; sourceTree = "<group>"; };
+		49724D971AD6ED390033C538 /* RenderScriptRuntime.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = RenderScriptRuntime.cpp; path = RenderScript/RenderScriptRuntime/RenderScriptRuntime.cpp; sourceTree = "<group>"; };
+		49724D981AD6ED390033C538 /* RenderScriptRuntime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RenderScriptRuntime.h; path = RenderScript/RenderScriptRuntime/RenderScriptRuntime.h; sourceTree = "<group>"; };
 		497C86BD122823D800B54702 /* ClangUtilityFunction.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ClangUtilityFunction.cpp; path = source/Expression/ClangUtilityFunction.cpp; sourceTree = "<group>"; };
 		497C86C1122823F300B54702 /* ClangUtilityFunction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ClangUtilityFunction.h; path = include/lldb/Expression/ClangUtilityFunction.h; sourceTree = "<group>"; };
 		497E7B331188ED300065CCA1 /* ABI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ABI.h; path = include/lldb/Target/ABI.h; sourceTree = "<group>"; };
@@ -3802,6 +3810,8 @@
 				23059A0519532B96007B8189 /* LinuxSignals.cpp */,
 				23059A0619532B96007B8189 /* LinuxSignals.h */,
 				23173F8B192BA93F005C708F /* lldb-x86-register-enums.h */,
+				26B75B421AD6E29A001F7A57 /* MipsLinuxSignals.cpp */,
+				26B75B431AD6E29A001F7A57 /* MipsLinuxSignals.h */,
 				26474C9E18D0CAEC0073DEBA /* RegisterContext_mips64.h */,
 				AF77E0991A033D360096C0EA /* RegisterContext_powerpc.h */,
 				26474C9F18D0CAEC0073DEBA /* RegisterContext_x86.h */,
@@ -4867,9 +4877,19 @@
 			path = Windows;
 			sourceTree = "<group>";
 		};
+		49724D961AD6ECFA0033C538 /* RenderScript */ = {
+			isa = PBXGroup;
+			children = (
+				49724D971AD6ED390033C538 /* RenderScriptRuntime.cpp */,
+				49724D981AD6ED390033C538 /* RenderScriptRuntime.h */,
+			);
+			name = RenderScript;
+			sourceTree = "<group>";
+		};
 		4CCA643A13B40B82003BDF98 /* LanguageRuntime */ = {
 			isa = PBXGroup;
 			children = (
+				49724D961AD6ECFA0033C538 /* RenderScript */,
 				4CCA643B13B40B82003BDF98 /* CPlusPlus */,
 				4CCA644013B40B82003BDF98 /* ObjC */,
 			);
@@ -5283,6 +5303,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				26A527C214E24F5F00F3A14A /* ProcessMachCore.h in Headers */,
+				26B75B451AD6E29A001F7A57 /* MipsLinuxSignals.h in Headers */,
 				257E47181AA56C2000A62F81 /* ModuleCache.h in Headers */,
 				26BC17AC18C7F4CB00D2196D /* ProcessElfCore.h in Headers */,
 				26A527C414E24F5F00F3A14A /* ThreadMachCore.h in Headers */,
@@ -5371,6 +5392,7 @@
 				26474CBF18D0CB2D0073DEBA /* RegisterContextMach_i386.h in Headers */,
 				26474CC118D0CB2D0073DEBA /* RegisterContextMach_x86_64.h in Headers */,
 				4959511D1A1BC49500F6F8FC /* ClangModulesDeclVendor.h in Headers */,
+				49724D9A1AD6ED390033C538 /* RenderScriptRuntime.h in Headers */,
 				4C73152219B7D71700F865A4 /* Iterable.h in Headers */,
 				2698699D15E6CBD0002415FF /* OperatingSystemPython.h in Headers */,
 				232CB618191E00CD00EF39FC /* NativeBreakpointList.h in Headers */,
@@ -5977,6 +5999,7 @@
 				2689003B13353E0400698AC0 /* EmulateInstruction.cpp in Sources */,
 				2689003C13353E0400698AC0 /* Error.cpp in Sources */,
 				2689003D13353E0400698AC0 /* Event.cpp in Sources */,
+				26B75B441AD6E29A001F7A57 /* MipsLinuxSignals.cpp in Sources */,
 				2689003E13353E0400698AC0 /* FileSpecList.cpp in Sources */,
 				2689004013353E0400698AC0 /* Language.cpp in Sources */,
 				2689004113353E0400698AC0 /* Listener.cpp in Sources */,
@@ -6046,6 +6069,7 @@
 				2689006D13353E0E00698AC0 /* IRExecutionUnit.cpp in Sources */,
 				2689006E13353E1A00698AC0 /* File.cpp in Sources */,
 				94D6A0AB16CEB55F00833B6E /* NSDictionary.cpp in Sources */,
+				49724D991AD6ED390033C538 /* RenderScriptRuntime.cpp in Sources */,
 				2689006F13353E1A00698AC0 /* FileSpec.cpp in Sources */,
 				2689007013353E1A00698AC0 /* Condition.cpp in Sources */,
 				2689007113353E1A00698AC0 /* Host.cpp in Sources */,
