@@ -189,7 +189,7 @@ Target::DeleteCurrentProcess ()
     {
         m_section_load_history.Clear();
         if (m_process_sp->IsAlive())
-            m_process_sp->Destroy();
+            m_process_sp->Destroy(false);
         
         m_process_sp->Finalize();
 
@@ -1259,24 +1259,6 @@ Target::ModulesDidLoad (ModuleList &module_list)
         if (m_process_sp)
         {
             m_process_sp->ModulesDidLoad (module_list);
-
-            // This assumes there can only be one libobjc loaded.
-            ObjCLanguageRuntime *objc_runtime = m_process_sp->GetObjCLanguageRuntime ();
-            if (objc_runtime && !objc_runtime->HasReadObjCLibrary ())
-            {
-                Mutex::Locker locker (module_list.GetMutex ());
-
-                size_t num_modules = module_list.GetSize();
-                for (size_t i = 0; i < num_modules; i++)
-                {
-                    auto mod = module_list.GetModuleAtIndex (i);
-                    if (objc_runtime->IsModuleObjCLibrary (mod))
-                    {
-                        objc_runtime->ReadObjCLibrary (mod);
-                        break;
-                    }
-                }
-            }
         }
         BroadcastEvent (eBroadcastBitModulesLoaded, new TargetEventData (this->shared_from_this(), module_list));
     }
@@ -2771,7 +2753,7 @@ Target::Attach (ProcessAttachInfo &attach_info, Stream *stream)
                 error.SetErrorStringWithFormat ("attach failed: %s", exit_desc);
             else
                 error.SetErrorString ("attach failed: process did not stop (no such process or permission problem?)");
-            process_sp->Destroy ();
+            process_sp->Destroy (false);
         }
     }
     return error;
