@@ -1796,6 +1796,12 @@ NativeProcessLinux::Launch(LaunchArgs *args, Error &error)
             if (!DupDescriptor(args->m_stderr_path.c_str (), STDERR_FILENO, O_WRONLY | O_CREAT | O_TRUNC))
                 exit(eDupStderrFailed);
 
+        // Close everything besides stdin, stdout, and stderr that has no file
+        // action to avoid leaking
+        for (int fd = 3; fd < sysconf(_SC_OPEN_MAX); ++fd)
+            if (!args->m_launch_info.GetFileActionForFD(fd))
+                close(fd);
+
         // Change working directory
         if (working_dir != NULL && working_dir[0])
           if (0 != ::chdir(working_dir))
@@ -2260,62 +2266,25 @@ NativeProcessLinux::MonitorSIGTRAP(const siginfo_t *info, lldb::pid_t pid)
 
     case (SIGTRAP | (PTRACE_EVENT_CLONE << 8)):
     {
-        lldb::tid_t tid = LLDB_INVALID_THREAD_ID;
+        // This is the notification on the parent thread which informs us of new thread
+        // creation. We are not interested in these events at this point (an interesting use
+        // case would be to stop the process upon thread creation), so we just resume the thread.
+        // We will pickup the new thread when we get its SIGSTOP notification.
 
-        // The main thread is stopped here.
-        if (thread_sp)
-            std::static_pointer_cast<NativeThreadLinux> (thread_sp)->SetStoppedBySignal (SIGTRAP);
-        NotifyThreadStop (pid);
-
-        unsigned long event_message = 0;
-        if (GetEventMessage (pid, &event_message).Success())
+        if (log)
         {
-            tid = static_cast<lldb::tid_t> (event_message);
-            if (log)
+            unsigned long event_message = 0;
+            if (GetEventMessage (pid, &event_message).Success())
+            {
+                lldb::tid_t tid = static_cast<lldb::tid_t> (event_message);
                 log->Printf ("NativeProcessLinux::%s() pid %" PRIu64 " received thread creation event for tid %" PRIu64, __FUNCTION__, pid, tid);
 
-            // If we don't track the thread yet: create it, mark as stopped.
-            // If we do track it, this is the wait we needed.  Now resume the new thread.
-            // In all cases, resume the current (i.e. main process) thread.
-            bool created_now = false;
-            NativeThreadProtocolSP new_thread_sp = GetOrCreateThread (tid, created_now);
-            assert (new_thread_sp.get() && "failed to get or create the tracking data for newly created inferior thread");
-
-            // If the thread was already tracked, it means the created thread already received its SI_USER notification of creation.
-            if (!created_now)
-            {
-                // We can now resume the newly created thread since it is fully created.
-                NotifyThreadCreateStopped (tid);
-                m_coordinator_up->RequestThreadResume (tid,
-                                                       [=](lldb::tid_t tid_to_resume, bool supress_signal)
-                                                       {
-                                                           std::static_pointer_cast<NativeThreadLinux> (new_thread_sp)->SetRunning ();
-                                                           return Resume (tid_to_resume, LLDB_INVALID_SIGNAL_NUMBER);
-                                                       },
-                                                       CoordinatorErrorHandler);
             }
             else
-            {
-                // Mark the thread as currently launching.  Need to wait for SIGTRAP clone on the main thread before
-                // this thread is ready to go.
-                std::static_pointer_cast<NativeThreadLinux> (new_thread_sp)->SetLaunching ();
-            }
-        }
-        else
-        {
-            if (log)
                 log->Printf ("NativeProcessLinux::%s() pid %" PRIu64 " received thread creation event but GetEventMessage failed so we don't know the new tid", __FUNCTION__, pid);
         }
 
-        // In all cases, we can resume the main thread here.
-        m_coordinator_up->RequestThreadResume (pid,
-                                               [=](lldb::tid_t tid_to_resume, bool supress_signal)
-                                               {
-                                                   std::static_pointer_cast<NativeThreadLinux> (thread_sp)->SetRunning ();
-                                                   return Resume (tid_to_resume, LLDB_INVALID_SIGNAL_NUMBER);
-                                               },
-                                               CoordinatorErrorHandler);
-
+        Resume (pid, LLDB_INVALID_SIGNAL_NUMBER);
         break;
     }
 
@@ -2640,31 +2609,12 @@ NativeProcessLinux::MonitorSignal(const siginfo_t *info, lldb::pid_t pid, bool e
             log->Printf ("NativeProcessLinux::%s() pid = %" PRIu64 " tid %" PRIu64 ": new thread notification",
                      __FUNCTION__, GetID (), pid);
 
-        // Did we already create the thread?
-        bool created_now = false;
-        thread_sp = GetOrCreateThread (pid, created_now);
-        assert (thread_sp.get() && "failed to get or create the tracking data for newly created inferior thread");
-
-        // If the thread was already tracked, it means the main thread already received its SIGTRAP for the create.
-        if (!created_now)
-        {
-            // We can now resume the newly created thread since it is fully created.
-            NotifyThreadCreateStopped (pid);
-            m_coordinator_up->RequestThreadResume (pid,
-                                                   [=](lldb::tid_t tid_to_resume, bool supress_signal)
-                                                   {
-                                                       std::static_pointer_cast<NativeThreadLinux> (thread_sp)->SetRunning ();
-                                                       return Resume (tid_to_resume, LLDB_INVALID_SIGNAL_NUMBER);
-                                                   },
-                                                   CoordinatorErrorHandler);
-        }
-        else
-        {
-            // Mark the thread as currently launching.  Need to wait for SIGTRAP clone on the main thread before
-            // this thread is ready to go.
-            std::static_pointer_cast<NativeThreadLinux> (thread_sp)->SetLaunching ();
-        }
-
+        thread_sp = AddThread(pid);
+        assert (thread_sp.get() && "failed to create the tracking data for newly created inferior thread");
+        // We can now resume the newly created thread.
+        std::static_pointer_cast<NativeThreadLinux> (thread_sp)->SetRunning ();
+        Resume (pid, LLDB_INVALID_SIGNAL_NUMBER);
+        m_coordinator_up->NotifyThreadCreate (pid, false, CoordinatorErrorHandler);
         // Done handling.
         return;
     }
@@ -3559,6 +3509,7 @@ NativeProcessLinux::GetSoftwareBreakpointPCOffset (NativeRegisterContextSP conte
     // set per architecture.  Need ARM, MIPS support here.
     static const uint8_t g_aarch64_opcode[] = { 0x00, 0x00, 0x20, 0xd4 };
     static const uint8_t g_i386_opcode [] = { 0xCC };
+    static const uint8_t g_mips64_opcode[] = { 0x00, 0x00, 0x00, 0x0d };
 
     switch (m_arch.GetMachine ())
     {
@@ -3575,6 +3526,11 @@ NativeProcessLinux::GetSoftwareBreakpointPCOffset (NativeRegisterContextSP conte
             actual_opcode_size = static_cast<uint32_t> (sizeof(g_i386_opcode));
             return Error ();
 
+        case llvm::Triple::mips64:
+        case llvm::Triple::mips64el:
+            actual_opcode_size = static_cast<uint32_t> (sizeof(g_mips64_opcode));
+            return Error ();
+        
         default:
             assert(false && "CPU type not supported!");
             return Error ("CPU type not supported");
@@ -4100,48 +4056,6 @@ NativeProcessLinux::AddThread (lldb::tid_t thread_id)
     NativeThreadProtocolSP thread_sp (new NativeThreadLinux (this, thread_id));
     m_threads.push_back (thread_sp);
 
-    return thread_sp;
-}
-
-NativeThreadProtocolSP
-NativeProcessLinux::GetOrCreateThread (lldb::tid_t thread_id, bool &created)
-{
-    Log *log (GetLogIfAllCategoriesSet (LIBLLDB_LOG_THREAD));
-
-    Mutex::Locker locker (m_threads_mutex);
-    if (log)
-    {
-        log->Printf ("NativeProcessLinux::%s pid %" PRIu64 " get/create thread with tid %" PRIu64,
-                     __FUNCTION__,
-                     GetID (),
-                     thread_id);
-    }
-
-    // Retrieve the thread if it is already getting tracked.
-    NativeThreadProtocolSP thread_sp = MaybeGetThreadNoLock (thread_id);
-    if (thread_sp)
-    {
-        if (log)
-            log->Printf ("NativeProcessLinux::%s pid %" PRIu64 " tid %" PRIu64 ": thread already tracked, returning",
-                         __FUNCTION__,
-                         GetID (),
-                         thread_id);
-        created = false;
-        return thread_sp;
-
-    }
-
-    // Create the thread metadata since it isn't being tracked.
-    if (log)
-        log->Printf ("NativeProcessLinux::%s pid %" PRIu64 " tid %" PRIu64 ": thread didn't exist, tracking now",
-                     __FUNCTION__,
-                     GetID (),
-                     thread_id);
-
-    thread_sp.reset (new NativeThreadLinux (this, thread_id));
-    m_threads.push_back (thread_sp);
-    created = true;
-    
     return thread_sp;
 }
 
