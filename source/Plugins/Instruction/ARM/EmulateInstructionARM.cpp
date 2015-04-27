@@ -1357,7 +1357,11 @@ EmulateInstructionARM::EmulateADDSPImm (const uint32_t opcode, const ARMEncoding
         addr_t addr = sp + sp_offset; // the adjusted stack pointer value
         
         EmulateInstruction::Context context;
-        context.type = EmulateInstruction::eContextAdjustStackPointer;
+        if (d == 13)
+            context.type = EmulateInstruction::eContextAdjustStackPointer;
+        else
+            context.type = EmulateInstruction::eContextRegisterPlusOffset;
+
         RegisterInfo sp_reg;
         GetRegisterInfo (eRegisterKindDWARF, dwarf_sp, sp_reg);
         context.SetRegisterPlusOffset (sp_reg, sp_offset);
@@ -12345,9 +12349,9 @@ EmulateInstructionARM::GetARMOpcodeForInstruction (const uint32_t opcode, uint32
         //----------------------------------------------------------------------
         // Branch instructions
         //----------------------------------------------------------------------
-        { 0x0f000000, 0x0a000000, ARMvAll,       eEncodingA1, No_VFP, eSize32, &EmulateInstructionARM::EmulateB, "b #imm24"},
-        // To resolve ambiguity, "blx <label>" should come before "bl <label>".
+        // To resolve ambiguity, "blx <label>" should come before "b #imm24" and "bl <label>".
         { 0xfe000000, 0xfa000000, ARMV5_ABOVE,   eEncodingA2, No_VFP, eSize32, &EmulateInstructionARM::EmulateBLXImmediate, "blx <label>"},
+        { 0x0f000000, 0x0a000000, ARMvAll,       eEncodingA1, No_VFP, eSize32, &EmulateInstructionARM::EmulateB, "b #imm24"},
         { 0x0f000000, 0x0b000000, ARMvAll,       eEncodingA1, No_VFP, eSize32, &EmulateInstructionARM::EmulateBLXImmediate, "bl <label>"},
         { 0x0ffffff0, 0x012fff30, ARMV5_ABOVE,   eEncodingA1, No_VFP, eSize32, &EmulateInstructionARM::EmulateBLXRm, "blx <Rm>"},
         // for example, "bx lr"
@@ -13032,8 +13036,7 @@ EmulateInstructionARM::ConditionPassed (const uint32_t opcode, bool *is_conditio
         // opcodes different meanings, but always means execution happens.
         if (is_conditional)
             *is_conditional = false;
-        result = true; 
-        break;
+        return true;
     }
 
     if (cond & 1)
