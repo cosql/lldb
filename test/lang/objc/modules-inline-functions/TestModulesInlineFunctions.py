@@ -1,4 +1,4 @@
-"""Test that importing modules in C works as expected."""
+"""Test that inline functions from modules are imported correctly"""
 
 import os, time
 import unittest2
@@ -10,7 +10,7 @@ from distutils.version import StrictVersion
 
 from lldbtest import *
 
-class CModulesTestCase(TestBase):
+class ModulesInlineFunctionsTestCase(TestBase):
 
     mydir = TestBase.compute_mydir(__file__)
 
@@ -22,6 +22,7 @@ class CModulesTestCase(TestBase):
 
     @dwarf_test
     @skipIfFreeBSD
+    @skipIfLinux
     def test_expr_with_dwarf(self):
         self.buildDwarf()
         self.expr()
@@ -30,7 +31,7 @@ class CModulesTestCase(TestBase):
         # Call super's setUp().
         TestBase.setUp(self)
         # Find the line number to break inside main().
-        self.line = line_number('main.c', '// Set breakpoint 0 here.')
+        self.line = line_number('main.m', '// Set breakpoint here.')
 
     def applies(self):
         if platform.system() != "Darwin":
@@ -45,7 +46,7 @@ class CModulesTestCase(TestBase):
         self.runCmd("file " + exe, CURRENT_EXECUTABLE_SET)
 
         # Break inside the foo function which takes a bar_ptr argument.
-        lldbutil.run_break_set_by_file_and_line (self, "main.c", self.line, num_expected_locations=1, loc_exact=True)
+        lldbutil.run_break_set_by_file_and_line (self, "main.m", self.line, num_expected_locations=1, loc_exact=True)
 
         self.runCmd("run", RUN_SUCCEEDED)
 
@@ -64,18 +65,14 @@ class CModulesTestCase(TestBase):
 
         self.common_setup()
 
-        self.expect("expr @import Darwin; 3", VARIABLES_DISPLAYED_CORRECTLY,
+        self.runCmd("settings set target.clang-module-search-paths \"" + os.getcwd() + "\"")
+
+        self.expect("expr @import myModule; 3", VARIABLES_DISPLAYED_CORRECTLY,
             substrs = ["int", "3"])
 
-        self.expect("expr *fopen(\"/dev/zero\", \"w\")", VARIABLES_DISPLAYED_CORRECTLY,
-            substrs = ["FILE", "_close", "__sclose"])
+        self.expect("expr isInline(2)", VARIABLES_DISPLAYED_CORRECTLY,
+            substrs = ["4"])
 
-        self.expect("expr *myFile", VARIABLES_DISPLAYED_CORRECTLY,
-            substrs = ["a", "5", "b", "9"])
-
-        self.expect("expr MIN((uint64_t)2, (uint64_t)3)", VARIABLES_DISPLAYED_CORRECTLY,
-            substrs = ["uint64_t", "2"])
-            
 if __name__ == '__main__':
     import atexit
     lldb.SBDebugger.Initialize()
