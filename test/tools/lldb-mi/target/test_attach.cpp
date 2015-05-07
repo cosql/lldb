@@ -7,9 +7,15 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cstdio>
+
 int
-main(int argc, char const *argv[])
+main(int argc, char const *argv[]) 
 {
-    int a = 10;
-    return 0; //BP_return
+    int i = 0;
+    for (;;)
+    {
+        i++; // BP_i++
+    }
+    return 0;
 }
