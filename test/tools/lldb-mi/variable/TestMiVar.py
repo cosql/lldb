@@ -11,6 +11,7 @@ class MiVarTestCase(lldbmi_testcase.MiTestCaseBase):
     mydir = TestBase.compute_mydir(__file__)
 
     @lldbmi_test
+    @expectedFailureLinux # The print-values argument can't be parsed correctly on Linux
     @expectedFailureWindows("llvm.org/pr22274: need a pexpect replacement for windows")
     @skipIfFreeBSD # llvm.org/pr22411: Failure presumably due to known thread races
     def test_lldbmi_eval(self):
@@ -254,12 +255,12 @@ class MiVarTestCase(lldbmi_testcase.MiTestCaseBase):
         self.expect("\^done,name=\"var_complx_array\",numchild=\"2\",value=\"\[2\]\",type=\"complex_type \[2\]\",thread-id=\"1\",has_more=\"0\"")
 
         # Test that -var-list-children lists empty children if range is empty
-        # FIXME (and that print-values is optional)
-        self.runCmd("-var-list-children 0 var_complx 0 0")
+        # (and that print-values is optional)
+        self.runCmd("-var-list-children var_complx 0 0")
         self.expect("\^done,numchild=\"0\",has_more=\"1\"")
-        self.runCmd("-var-list-children 0 var_complx 99 0")
+        self.runCmd("-var-list-children var_complx 99 0")
         self.expect("\^done,numchild=\"0\",has_more=\"1\"")
-        self.runCmd("-var-list-children 0 var_complx 99 3")
+        self.runCmd("-var-list-children var_complx 99 3")
         self.expect("\^done,numchild=\"0\",has_more=\"0\"")
 
         # Test that -var-list-children lists all children with their values
@@ -272,39 +273,32 @@ class MiVarTestCase(lldbmi_testcase.MiTestCaseBase):
         # Test that -var-list-children lists children without values
         self.runCmd("-var-list-children 0 var_complx 0 1")
         self.expect("\^done,numchild=\"1\",children=\[child=\{name=\"var_complx\.i\",exp=\"i\",numchild=\"0\",type=\"int\",thread-id=\"1\",has_more=\"0\"\}\],has_more=\"1\"")
-        # FIXME: first 0 is treated as --no-values
         self.runCmd("-var-list-children --no-values var_complx 0 1")
-        # self.expect("\^done,numchild=\"1\",children=\[child=\{name=\"var_complx\.i\",exp=\"i\",numchild=\"0\",type=\"int\",thread-id=\"1\",has_more=\"0\"\}\],has_more=\"1\"")
+        self.expect("\^done,numchild=\"1\",children=\[child=\{name=\"var_complx\.i\",exp=\"i\",numchild=\"0\",type=\"int\",thread-id=\"1\",has_more=\"0\"\}\],has_more=\"1\"")
 
         # Test that -var-list-children lists children with all values
         self.runCmd("-var-list-children 1 var_complx 1 2")
         self.expect("\^done,numchild=\"1\",children=\[child=\{name=\"var_complx\.inner\",exp=\"inner\",numchild=\"1\",type=\"complex_type::\(anonymous struct\)\",thread-id=\"1\",value=\"\{\.\.\.\}\",has_more=\"0\"\}\],has_more=\"1\"")
-        # FIXME: first 1 is treated as --all-values
         self.runCmd("-var-list-children --all-values var_complx 1 2")
-        # self.expect("\^done,numchild=\"1\",children=\[child=\{name=\"var_complx\.inner\",exp=\"inner\",numchild=\"1\",type=\"complex_type::\(anonymous struct\)\",thread-id=\"1\",value=\"\{\.\.\.\}\",has_more=\"0\"\}\],has_more=\"1\"")
+        self.expect("\^done,numchild=\"1\",children=\[child=\{name=\"var_complx\.inner\",exp=\"inner\",numchild=\"1\",type=\"complex_type::\(anonymous struct\)\",thread-id=\"1\",value=\"\{\.\.\.\}\",has_more=\"0\"\}\],has_more=\"1\"")
 
         # Test that -var-list-children lists children with simple values
         self.runCmd("-var-list-children 2 var_complx 2 4")
         self.expect("\^done,numchild=\"1\",children=\[child=\{name=\"var_complx\.complex_ptr\",exp=\"complex_ptr\",numchild=\"3\",type=\"complex_type \*\",thread-id=\"1\",has_more=\"0\"\}\],has_more=\"0\"")
-        # FIXME: first 2 is treated as --simple-values
         self.runCmd("-var-list-children --simple-values var_complx 2 4")
-        # self.expect("\^done,numchild=\"1\",children=\[child=\{name=\"var_complx\.complex_ptr\",exp=\"complex_ptr\",numchild=\"3\",type=\"complex_type \*\",thread-id=\"1\",has_more=\"0\"\}\],has_more=\"0\"")
+        self.expect("\^done,numchild=\"1\",children=\[child=\{name=\"var_complx\.complex_ptr\",exp=\"complex_ptr\",numchild=\"3\",type=\"complex_type \*\",thread-id=\"1\",has_more=\"0\"\}\],has_more=\"0\"")
 
         # Test that an invalid from is handled
-        # FIXME: first 0 is treated as --no-values
         # FIXME: -1 is treated as unsigned int
         self.runCmd("-var-list-children 0 var_complx -1 0")
         #self.expect("\^error,msg=\"Command 'var-list-children'\. Variable children range invalid\"")
 
         # Test that an invalid to is handled
-        # FIXME: first 0 is treated as --no-values
         # FIXME: -1 is treated as unsigned int
         self.runCmd("-var-list-children 0 var_complx 0 -1")
         #self.expect("\^error,msg=\"Command 'var-list-children'\. Variable children range invalid\"")
 
         # Test that a missing low-frame or high-frame is handled
-        # FIXME: first 0 is treated as --no-values
-        # FIXME: -1 is treated as unsigned int
         self.runCmd("-var-list-children 0 var_complx 0")
         self.expect("\^error,msg=\"Command 'var-list-children'. Variable children range invalid\"")
 

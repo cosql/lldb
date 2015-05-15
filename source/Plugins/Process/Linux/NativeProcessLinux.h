@@ -151,6 +151,16 @@ namespace process_linux {
         Error
         ReadFPR(lldb::tid_t tid, void *buf, size_t buf_size);
 
+        /// Reads hardware breakpoints and watchpoints capability information.
+        Error
+        ReadHardwareDebugInfo (lldb::tid_t tid, unsigned int &watch_count ,
+                               unsigned int &break_count);
+
+        /// Write hardware breakpoint/watchpoint control and address registers.
+        Error
+        WriteHardwareDebugRegs (lldb::tid_t tid, lldb::addr_t *addr_buf,
+                                uint32_t *cntrl_buf, int type, int count);
+
         /// Reads the specified register set into the specified buffer.
         /// For instance, the extended floating-point register set.
         Error

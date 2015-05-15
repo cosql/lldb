@@ -14,7 +14,6 @@
 
 // C Includes
 #include <stdio.h>
-#include <vector>
 #ifndef LLDB_DISABLE_POSIX
 #include <sys/utsname.h>
 #endif
@@ -477,14 +476,57 @@ PlatformLinux::FindProcesses (const ProcessInstanceInfoMatch &match_info,
 bool
 PlatformLinux::GetSupportedArchitectureAtIndex (uint32_t idx, ArchSpec &arch)
 {
-    static std::vector<ArchSpec> architectures = {
-        ArchSpec("x86_64-unknown-linux-gnu"),
-        ArchSpec("i386-unknown-linux-gnu"),
-    };
-    if (idx >= architectures.size())
-        return false;
-    arch = architectures[idx];
-    return true;
+    if (IsHost())
+    {
+        ArchSpec hostArch = HostInfo::GetArchitecture(HostInfo::eArchKindDefault);
+        if (hostArch.GetTriple().isOSLinux())
+        {
+            if (idx == 0)
+            {
+                arch = hostArch;
+                return arch.IsValid();
+            }
+            else if (idx == 1)
+            {
+                // If the default host architecture is 64-bit, look for a 32-bit variant
+                if (hostArch.IsValid() && hostArch.GetTriple().isArch64Bit())
+                {
+                    arch = HostInfo::GetArchitecture(HostInfo::eArchKind32);
+                    return arch.IsValid();
+                }
+            }
+        }
+    }
+    else
+    {
+        if (m_remote_platform_sp)
+            return m_remote_platform_sp->GetSupportedArchitectureAtIndex(idx, arch);
+
+        llvm::Triple triple;
+        // Set the OS to linux
+        triple.setOS(llvm::Triple::Linux);
+        // Set the architecture
+        switch (idx)
+        {
+            case 0: triple.setArchName("x86_64"); break;
+            case 1: triple.setArchName("i386"); break;
+            case 2: triple.setArchName("arm"); break;
+            case 3: triple.setArchName("aarch64"); break;
+            case 4: triple.setArchName("mips64"); break;
+            case 5: triple.setArchName("hexagon"); break;
+            case 6: triple.setArchName("mips"); break;
+            default: return false;
+        }
+        // Leave the vendor as "llvm::Triple:UnknownVendor" and don't specify the vendor by
+        // calling triple.SetVendorName("unknown") so that it is a "unspecified unknown".
+        // This means when someone calls triple.GetVendorName() it will return an empty string
+        // which indicates that the vendor can be set when two architectures are merged
+
+        // Now set the triple into "arch" and return true
+        arch.SetTriple(triple);
+        return true;
+    }
+    return false;
 }
 
 void
@@ -572,6 +614,7 @@ PlatformLinux::GetSoftwareBreakpointTrapOpcode (Target &target,
             }
         }
         break;
+    case llvm::Triple::mips:
     case llvm::Triple::mips64:
         {
             static const uint8_t g_hex_opcode[] = { 0x00, 0x00, 0x00, 0x0d };
@@ -579,6 +622,7 @@ PlatformLinux::GetSoftwareBreakpointTrapOpcode (Target &target,
             trap_opcode_size = sizeof(g_hex_opcode);
         }
         break;
+    case llvm::Triple::mipsel:
     case llvm::Triple::mips64el:
         {
             static const uint8_t g_hex_opcode[] = { 0x0d, 0x00, 0x00, 0x00 };
