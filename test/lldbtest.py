@@ -717,15 +717,49 @@ def skipUnlessDarwin(func):
     return skipUnlessPlatform(getDarwinOSTriples())(func)
 
 def getPlatform():
-    """Returns the target platform the test suite is running on."""
+    """Returns the target platform which the tests are running on."""
     platform = lldb.DBG.GetSelectedPlatform().GetTriple().split('-')[2]
     if platform.startswith('freebsd'):
         platform = 'freebsd'
     return platform
 
+def getHostPlatform():
+    """Returns the host platform running the test suite."""
+    # Attempts to return a platform name matching a target Triple platform.
+    if sys.platform.startswith('linux'):
+        return 'linux'
+    elif sys.platform.startswith('win32'):
+        return 'windows'
+    elif sys.platform.startswith('darwin'):
+        return 'darwin'
+    elif sys.platform.startswith('freebsd'):
+        return 'freebsd'
+    else:
+        return sys.platform
+
 def platformIsDarwin():
     """Returns true if the OS triple for the selected platform is any valid apple OS"""
     return getPlatform() in getDarwinOSTriples()
+
+def skipIfHostIncompatibleWithRemote(func):
+    """Decorate the item to skip tests if binaries built on this host are incompatible."""
+    if isinstance(func, type) and issubclass(func, unittest2.TestCase):
+        raise Exception("@skipIfHostIncompatibleWithRemote can only be used to decorate a test method")
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        from unittest2 import case
+        self = args[0]
+        host_arch = self.getLldbArchitecture()
+        host_platform = getHostPlatform()
+        target_arch = self.getArchitecture()
+        target_platform = 'darwin' if self.platformIsDarwin() else self.getPlatform()
+        if not (target_arch == 'x86_64' and host_arch == 'i386') and host_arch != target_arch:
+            self.skipTest("skipping because target %s is not compatible with host architecture %s" % (target_arch, host_arch))
+        elif target_platform != host_platform:
+            self.skipTest("skipping because target is %s but host is %s" % (target_platform, host_platform))
+        else:
+            func(*args, **kwargs)
+    return wrapper
 
 def skipIfPlatform(oslist):
     """Decorate the item to skip tests if running on one of the listed platforms."""
@@ -1650,7 +1684,7 @@ class Base(unittest2.TestCase):
 
     def getstdlibFlag(self):
         """ Returns the proper -stdlib flag, or empty if not required."""
-        if sys.platform.startswith("darwin") or sys.platform.startswith("freebsd"):
+        if self.platformIsDarwin() or self.getPlatform() == "freebsd":
             stdlibflag = "-stdlib=libc++"
         else:
             stdlibflag = ""
@@ -1700,7 +1734,7 @@ class Base(unittest2.TestCase):
 
         stdflag = self.getstdFlag()
 
-        if sys.platform.startswith("darwin"):
+        if self.platformIsDarwin():
             dsym = os.path.join(self.lib_dir, 'LLDB.framework', 'LLDB')
             d = {'DYLIB_CXX_SOURCES' : sources,
                  'DYLIB_NAME' : lib_name,
@@ -1708,12 +1742,12 @@ class Base(unittest2.TestCase):
                  'FRAMEWORK_INCLUDES' : "-F%s" % self.lib_dir,
                  'LD_EXTRAS' : "%s -Wl,-rpath,%s -dynamiclib" % (dsym, self.lib_dir),
                 }
-        elif sys.platform.startswith('freebsd') or sys.platform.startswith("linux") or os.environ.get('LLDB_BUILD_TYPE') == 'Makefile':
+        elif self.getPlatform() == 'freebsd' or self.getPlatform() == 'linux' or os.environ.get('LLDB_BUILD_TYPE') == 'Makefile':
             d = {'DYLIB_CXX_SOURCES' : sources,
                  'DYLIB_NAME' : lib_name,
                  'CFLAGS_EXTRAS' : "%s -I%s -fPIC" % (stdflag, os.path.join(os.environ["LLDB_SRC"], "include")),
                  'LD_EXTRAS' : "-shared -L%s -llldb" % self.lib_dir}
-        elif sys.platform.startswith("win"):
+        elif self.getPlatform() == 'windows':
             d = {'DYLIB_CXX_SOURCES' : sources,
                  'DYLIB_NAME' : lib_name,
                  'CFLAGS_EXTRAS' : "%s -I%s -fPIC" % (stdflag, os.path.join(os.environ["LLDB_SRC"], "include")),
@@ -1787,7 +1821,7 @@ class Base(unittest2.TestCase):
         ldflags = ""
 
         # On Mac OS X, unless specifically requested to use libstdc++, use libc++
-        if not use_libstdcxx and sys.platform.startswith('darwin'):
+        if not use_libstdcxx and self.platformIsDarwin():
             use_libcxx = True
 
         if use_libcxx and self.libcxxPath:
@@ -1804,7 +1838,7 @@ class Base(unittest2.TestCase):
                 cflags += "c++0x"
             else:
                 cflags += "c++11"
-        if sys.platform.startswith("darwin") or sys.platform.startswith("freebsd"):
+        if self.platformIsDarwin() or self.getPlatform() == "freebsd":
             cflags += " -stdlib=libc++"
         elif "clang" in self.getCompiler():
             cflags += " -stdlib=libstdc++"
