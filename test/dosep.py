@@ -70,7 +70,7 @@ def call_with_timeout(command, timeout):
         return (ePassed if subprocess.call(command, stdin=subprocess.PIPE) == 0
                 else eFailed)
 
-def process_dir(root, files, test_root, dotest_options):
+def process_dir(root, files, test_root, dotest_argv):
     """Examine a directory for tests, and invoke any found within it."""
     timed_out = []
     failed = []
@@ -87,10 +87,8 @@ def process_dir(root, files, test_root, dotest_options):
             continue
 
         script_file = os.path.join(test_root, "dotest.py")
-        is_posix = (os.name == "posix")
-        split_args = shlex.split(dotest_options, posix=is_posix) if dotest_options else []
         command = ([sys.executable, script_file] +
-                   split_args +
+                   dotest_argv +
                    ["-p", name, root])
 
         timeout_name = os.path.basename(os.path.splitext(name)[0]).upper()
@@ -113,10 +111,10 @@ out_q = None
 def process_dir_worker(arg_tuple):
     """Worker thread main loop when in multithreaded mode.
     Takes one directory specification at a time and works on it."""
-    (root, files, test_root, dotest_options) = arg_tuple
-    return process_dir(root, files, test_root, dotest_options)
+    (root, files, test_root, dotest_argv) = arg_tuple
+    return process_dir(root, files, test_root, dotest_argv)
 
-def walk_and_invoke(test_directory, test_subdir, dotest_options, num_threads):
+def walk_and_invoke(test_directory, test_subdir, dotest_argv, num_threads):
     """Look for matched files and invoke test driver on each one.
     In single-threaded mode, each test driver is invoked directly.
     In multi-threaded mode, submit each test driver to a worker
@@ -129,7 +127,7 @@ def walk_and_invoke(test_directory, test_subdir, dotest_options, num_threads):
     # Collect the test files that we'll run.
     test_work_items = []
     for root, dirs, files in os.walk(test_subdir, topdown=False):
-        test_work_items.append((root, files, test_directory, dotest_options))
+        test_work_items.append((root, files, test_directory, dotest_argv))
 
     # Run the items, either in a pool (for multicore speedup) or
     # calling each individually.
@@ -192,6 +190,10 @@ def getExpectedTimeouts(platform_name):
         }
     return expected_timeout
 
+def touch(fname, times=None):
+    with open(fname, 'a'):
+        os.utime(fname, times)
+
 def main():
     # We can't use sys.path[0] to determine the script directory
     # because it doesn't work under a debugger
@@ -229,8 +231,23 @@ Run lldb test suite using a separate process for each test file.
     opts, args = parser.parse_args()
     dotest_option_string = opts.dotest_options
 
-    dotest_argv = shlex.split(dotest_option_string)
-    dotest_options = dotest_args.getArguments(dotest_argv)
+    is_posix = (os.name == "posix")
+    dotest_argv = shlex.split(dotest_option_string, posix=is_posix) if dotest_option_string else []
+
+    parser = dotest_args.create_parser()
+    dotest_options = dotest_args.parse_args(parser, dotest_argv)
+
+    if not dotest_options.s:
+        # no session log directory, we need to add this to prevent
+        # every dotest invocation from creating its own directory
+        import datetime
+        # The windows platforms don't like ':' in the pathname.
+        timestamp_started = datetime.datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
+        dotest_argv.append('-s')
+        dotest_argv.append(timestamp_started)
+        dotest_options.s = timestamp_started
+
+    session_dir = os.path.join(os.getcwd(), dotest_options.s)
 
     # The root directory was specified on the command line
     if len(args) == 0:
@@ -250,7 +267,7 @@ Run lldb test suite using a separate process for each test file.
         num_threads = 1
 
     system_info = " ".join(platform.uname())
-    (timed_out, failed, passed) = walk_and_invoke(test_directory, test_subdir, dotest_option_string,
+    (timed_out, failed, passed) = walk_and_invoke(test_directory, test_subdir, dotest_argv,
                                                   num_threads)
     timed_out = set(timed_out)
     num_tests = len(failed) + len(passed)
@@ -261,6 +278,15 @@ Run lldb test suite using a separate process for each test file.
         if xtime in timed_out:
             timed_out.remove(xtime)
             failed.remove(xtime)
+            result = "ExpectedTimeout"
+        elif xtime in passed:
+            result = "UnexpectedCompletion"
+        else:
+            result = None  # failed
+
+        if result:
+            test_name = os.path.splitext(xtime)[0]
+            touch(os.path.join(session_dir, "{}-{}".format(result, test_name)))
 
     print "Ran %d tests." % num_tests
     if len(failed) > 0:

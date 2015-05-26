@@ -23,8 +23,6 @@ import logging
 
 class GdbRemoteTestCaseBase(TestBase):
 
-    mydir = TestBase.compute_mydir(__file__)
-
     _TIMEOUT_SECONDS = 5
 
     _GDBREMOTE_KILL_PACKET = "$k#6b"
@@ -168,6 +166,11 @@ class GdbRemoteTestCaseBase(TestBase):
                 self.skipTest("lldb-server exe not found")
 
         self.debug_monitor_extra_args = ["gdbserver"]
+
+        if len(lldbtest_config.channels) > 0:
+            self.debug_monitor_extra_args.append("--log-file={}-server.log".format(self.log_basename))
+            self.debug_monitor_extra_args.append("--log-channels={}".format(":".join(lldbtest_config.channels)))
+
         if use_named_pipe:
             (self.named_pipe_path, self.named_pipe, self.named_pipe_fd) = self.create_named_pipe()
 
@@ -175,7 +178,7 @@ class GdbRemoteTestCaseBase(TestBase):
         self.debug_monitor_exe = get_debugserver_exe()
         if not self.debug_monitor_exe:
             self.skipTest("debugserver exe not found")
-        self.debug_monitor_extra_args = ["--log-file=/tmp/packets-{}.log".format(self._testMethodName), "--log-flags=0x800000"]
+        self.debug_monitor_extra_args = ["--log-file={}-server.log".format(self.log_basename), "--log-flags=0x800000"]
         if use_named_pipe:
             (self.named_pipe_path, self.named_pipe, self.named_pipe_fd) = self.create_named_pipe()
         # The debugserver stub has a race on handling the 'k' command, so it sends an X09 right away, then sends the real X notification
