@@ -660,9 +660,12 @@ EmulateInstructionARM::EmulateADDRdSPImm (const uint32_t opcode, const ARMEncodi
         }
         addr_t sp_offset = imm32;
         addr_t addr = sp + sp_offset; // a pointer to the stack area
-        
+
         EmulateInstruction::Context context;
-        context.type = eContextSetFramePointer;
+        if (Rd == GetFramePointerRegisterNumber())
+            context.type = eContextSetFramePointer;
+        else
+            context.type = EmulateInstruction::eContextRegisterPlusOffset;
         RegisterInfo sp_reg;
         GetRegisterInfo (eRegisterKindDWARF, dwarf_sp, sp_reg);
         context.SetRegisterPlusOffset (sp_reg, sp_offset);
@@ -812,7 +815,10 @@ EmulateInstructionARM::EmulateMOVRdRm (const uint32_t opcode, const ARMEncoding 
 
         // The context specifies that Rm is to be moved into Rd.
         EmulateInstruction::Context context;
-        context.type = EmulateInstruction::eContextRegisterPlusOffset;
+        if (Rd == 13)
+            context.type = EmulateInstruction::eContextAdjustStackPointer;
+        else
+            context.type = EmulateInstruction::eContextRegisterPlusOffset;
         RegisterInfo dwarf_reg;
         GetRegisterInfo (eRegisterKindDWARF, dwarf_r0 + Rm, dwarf_reg);
         context.SetRegisterPlusOffset (dwarf_reg, 0);

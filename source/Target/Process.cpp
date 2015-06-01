@@ -7,8 +7,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "lldb/lldb-python.h"
-
 #include "lldb/Target/Process.h"
 #include "lldb/Breakpoint/StoppointCallbackContext.h"
 #include "lldb/Breakpoint/BreakpointLocation.h"
@@ -434,7 +432,7 @@ ProcessLaunchCommandOptions::SetOptionValue (uint32_t option_idx, const char *op
         case 'i':   // STDIN for read only
         {
             FileAction action;
-            if (action.Open (STDIN_FILENO, option_arg, true, false))
+            if (action.Open(STDIN_FILENO, FileSpec{option_arg, false}, true, false))
                 launch_info.AppendFileAction (action);
             break;
         }
@@ -442,7 +440,7 @@ ProcessLaunchCommandOptions::SetOptionValue (uint32_t option_idx, const char *op
         case 'o':   // Open STDOUT for write only
         {
             FileAction action;
-            if (action.Open (STDOUT_FILENO, option_arg, false, true))
+            if (action.Open(STDOUT_FILENO, FileSpec{option_arg, false}, false, true))
                 launch_info.AppendFileAction (action);
             break;
         }
@@ -450,7 +448,7 @@ ProcessLaunchCommandOptions::SetOptionValue (uint32_t option_idx, const char *op
         case 'e':   // STDERR for write only
         {
             FileAction action;
-            if (action.Open (STDERR_FILENO, option_arg, false, true))
+            if (action.Open(STDERR_FILENO, FileSpec{option_arg, false}, false, true))
                 launch_info.AppendFileAction (action);
             break;
         }
@@ -462,17 +460,18 @@ ProcessLaunchCommandOptions::SetOptionValue (uint32_t option_idx, const char *op
         case 'n':   // Disable STDIO
         {
             FileAction action;
-            if (action.Open (STDIN_FILENO, "/dev/null", true, false))
+            const FileSpec dev_null{"/dev/null", false};
+            if (action.Open(STDIN_FILENO, dev_null, true, false))
                 launch_info.AppendFileAction (action);
-            if (action.Open (STDOUT_FILENO, "/dev/null", false, true))
+            if (action.Open(STDOUT_FILENO, dev_null, false, true))
                 launch_info.AppendFileAction (action);
-            if (action.Open (STDERR_FILENO, "/dev/null", false, true))
+            if (action.Open(STDERR_FILENO, dev_null, false, true))
                 launch_info.AppendFileAction (action);
             break;
         }
             
         case 'w': 
-            launch_info.SetWorkingDirectory (option_arg);    
+            launch_info.SetWorkingDirectory(FileSpec{option_arg, false});
             break;
             
         case 't':   // Open process in new terminal window
@@ -4646,7 +4645,7 @@ Process::RunPrivateStateThread ()
 
 Process::ProcessEventData::ProcessEventData () :
     EventData (),
-    m_process_sp (),
+    m_process_wp (),
     m_state (eStateInvalid),
     m_restarted (false),
     m_update_state (0),
@@ -4656,12 +4655,14 @@ Process::ProcessEventData::ProcessEventData () :
 
 Process::ProcessEventData::ProcessEventData (const ProcessSP &process_sp, StateType state) :
     EventData (),
-    m_process_sp (process_sp),
+    m_process_wp (),
     m_state (state),
     m_restarted (false),
     m_update_state (0),
     m_interrupted (false)
 {
+    if (process_sp)
+        m_process_wp = process_sp;
 }
 
 Process::ProcessEventData::~ProcessEventData()
@@ -4684,6 +4685,11 @@ Process::ProcessEventData::GetFlavor () const
 void
 Process::ProcessEventData::DoOnRemoval (Event *event_ptr)
 {
+    ProcessSP process_sp(m_process_wp.lock());
+    
+    if (!process_sp)
+        return;
+    
     // This function gets called twice for each event, once when the event gets pulled 
     // off of the private process event queue, and then any number of times, first when it gets pulled off of
     // the public event queue, then other times when we're pretending that this is where we stopped at the
@@ -4693,7 +4699,7 @@ Process::ProcessEventData::DoOnRemoval (Event *event_ptr)
     if (m_update_state != 1)
         return;
     
-    m_process_sp->SetPublicState (m_state, Process::ProcessEventData::GetRestartedFromEvent(event_ptr));
+    process_sp->SetPublicState (m_state, Process::ProcessEventData::GetRestartedFromEvent(event_ptr));
     
     // If this is a halt event, even if the halt stopped with some reason other than a plain interrupt (e.g. we had
     // already stopped for a breakpoint when the halt request came through) don't do the StopInfo actions, as they may
@@ -4704,7 +4710,7 @@ Process::ProcessEventData::DoOnRemoval (Event *event_ptr)
     // If we're stopped and haven't restarted, then do the StopInfo actions here:
     if (m_state == eStateStopped && ! m_restarted)
     {        
-        ThreadList &curr_thread_list = m_process_sp->GetThreadList();
+        ThreadList &curr_thread_list = process_sp->GetThreadList();
         uint32_t num_threads = curr_thread_list.GetSize();
         uint32_t idx;
 
@@ -4734,7 +4740,7 @@ Process::ProcessEventData::DoOnRemoval (Event *event_ptr)
         
         for (idx = 0; idx < num_threads; ++idx)
         {
-            curr_thread_list = m_process_sp->GetThreadList();
+            curr_thread_list = process_sp->GetThreadList();
             if (curr_thread_list.GetSize() != num_threads)
             {
                 Log *log(lldb_private::GetLogIfAnyCategoriesSet (LIBLLDB_LOG_STEP | LIBLLDB_LOG_PROCESS));
@@ -4797,14 +4803,14 @@ Process::ProcessEventData::DoOnRemoval (Event *event_ptr)
                 SetRestarted(true);
                 // Use the public resume method here, since this is just
                 // extending a public resume.
-                m_process_sp->PrivateResume();
+                process_sp->PrivateResume();
             }
             else
             {
                 // If we didn't restart, run the Stop Hooks here:
                 // They might also restart the target, so watch for that.
-                m_process_sp->GetTarget().RunStopHooks();
-                if (m_process_sp->GetPrivateState() == eStateRunning)
+                process_sp->GetTarget().RunStopHooks();
+                if (process_sp->GetPrivateState() == eStateRunning)
                     SetRestarted(true);
             }
         }
@@ -4814,9 +4820,13 @@ Process::ProcessEventData::DoOnRemoval (Event *event_ptr)
 void
 Process::ProcessEventData::Dump (Stream *s) const
 {
-    if (m_process_sp)
+    ProcessSP process_sp(m_process_wp.lock());
+
+    if (process_sp)
         s->Printf(" process = %p (pid = %" PRIu64 "), ",
-                  static_cast<void*>(m_process_sp.get()), m_process_sp->GetID());
+                  static_cast<void*>(process_sp.get()), process_sp->GetID());
+    else
+        s->PutCString(" process = NULL, ");
 
     s->Printf("state = %s", StateAsCString(GetState()));
 }
@@ -5096,6 +5106,7 @@ public:
         m_write_file (write_fd, false),
         m_pipe ()
     {
+        m_pipe.CreateNew(false);
         m_read_file.SetDescriptor(GetInputFD(), false);
     }
 
@@ -5105,101 +5116,81 @@ public:
         
     }
     
-    bool
-    OpenPipes ()
-    {
-        if (m_pipe.CanRead() && m_pipe.CanWrite())
-            return true;
-        Error result = m_pipe.CreateNew(false);
-        return result.Success();
-    }
-
-    void
-    ClosePipes()
-    {
-        m_pipe.Close();
-    }
-    
     // Each IOHandler gets to run until it is done. It should read data
     // from the "in" and place output into "out" and "err and return
     // when done.
     void
     Run () override
     {
-        if (m_read_file.IsValid() && m_write_file.IsValid())
+        if (!m_read_file.IsValid() || !m_write_file.IsValid() || !m_pipe.CanRead() || !m_pipe.CanWrite())
         {
-            SetIsDone(false);
-            if (OpenPipes())
-            {
-                const int read_fd = m_read_file.GetDescriptor();
-                TerminalState terminal_state;
-                terminal_state.Save (read_fd, false);
-                Terminal terminal(read_fd);
-                terminal.SetCanonical(false);
-                terminal.SetEcho(false);
+            SetIsDone(true);
+            return;
+        }
+
+        SetIsDone(false);
+        const int read_fd = m_read_file.GetDescriptor();
+        TerminalState terminal_state;
+        terminal_state.Save (read_fd, false);
+        Terminal terminal(read_fd);
+        terminal.SetCanonical(false);
+        terminal.SetEcho(false);
 // FD_ZERO, FD_SET are not supported on windows
 #ifndef _WIN32
-                const int pipe_read_fd = m_pipe.GetReadFileDescriptor();
-                while (!GetIsDone())
+        const int pipe_read_fd = m_pipe.GetReadFileDescriptor();
+        while (!GetIsDone())
+        {
+            fd_set read_fdset;
+            FD_ZERO (&read_fdset);
+            FD_SET (read_fd, &read_fdset);
+            FD_SET (pipe_read_fd, &read_fdset);
+            const int nfds = std::max<int>(read_fd, pipe_read_fd) + 1;
+            int num_set_fds = select (nfds, &read_fdset, NULL, NULL, NULL);
+            if (num_set_fds < 0)
+            {
+                const int select_errno = errno;
+
+                if (select_errno != EINTR)
+                    SetIsDone(true);
+            }
+            else if (num_set_fds > 0)
+            {
+                char ch = 0;
+                size_t n;
+                if (FD_ISSET (read_fd, &read_fdset))
                 {
-                    fd_set read_fdset;
-                    FD_ZERO (&read_fdset);
-                    FD_SET (read_fd, &read_fdset);
-                    FD_SET (pipe_read_fd, &read_fdset);
-                    const int nfds = std::max<int>(read_fd, pipe_read_fd) + 1;
-                    int num_set_fds = select (nfds, &read_fdset, NULL, NULL, NULL);
-                    if (num_set_fds < 0)
+                    n = 1;
+                    if (m_read_file.Read(&ch, n).Success() && n == 1)
                     {
-                        const int select_errno = errno;
-                        
-                        if (select_errno != EINTR)
+                        if (m_write_file.Write(&ch, n).Fail() || n != 1)
                             SetIsDone(true);
                     }
-                    else if (num_set_fds > 0)
+                    else
+                        SetIsDone(true);
+                }
+                if (FD_ISSET (pipe_read_fd, &read_fdset))
+                {
+                    size_t bytes_read;
+                    // Consume the interrupt byte
+                    Error error = m_pipe.Read(&ch, 1, bytes_read);
+                    if (error.Success())
                     {
-                        char ch = 0;
-                        size_t n;
-                        if (FD_ISSET (read_fd, &read_fdset))
+                        switch (ch)
                         {
-                            n = 1;
-                            if (m_read_file.Read(&ch, n).Success() && n == 1)
-                            {
-                                if (m_write_file.Write(&ch, n).Fail() || n != 1)
-                                    SetIsDone(true);
-                            }
-                            else
+                            case 'q':
                                 SetIsDone(true);
-                        }
-                        if (FD_ISSET (pipe_read_fd, &read_fdset))
-                        {
-                            size_t bytes_read;
-                            // Consume the interrupt byte
-                            Error error = m_pipe.Read(&ch, 1, bytes_read);
-                            if (error.Success())
-                            {
-                                switch (ch)
-                                {
-                                    case 'q':
-                                        SetIsDone(true);
-                                        break;
-                                    case 'i':
-                                        if (StateIsRunningState(m_process->GetState()))
-                                            m_process->Halt();
-                                        break;
-                                }
-                            }
+                                break;
+                            case 'i':
+                                if (StateIsRunningState(m_process->GetState()))
+                                    m_process->Halt();
+                                break;
                         }
                     }
                 }
-#endif
-                terminal_state.Restore();
-
             }
-            else
-                SetIsDone(true);
         }
-        else
-            SetIsDone(true);
+#endif
+        terminal_state.Restore();
     }
     
     void

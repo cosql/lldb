@@ -7,8 +7,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "lldb/lldb-python.h"
-
 #include "lldb/Interpreter/CommandObject.h"
 
 #include <string>
@@ -31,8 +29,6 @@
 
 #include "lldb/Interpreter/CommandInterpreter.h"
 #include "lldb/Interpreter/CommandReturnObject.h"
-#include "lldb/Interpreter/ScriptInterpreter.h"
-#include "lldb/Interpreter/ScriptInterpreterPython.h"
 
 using namespace lldb;
 using namespace lldb_private;
