@@ -20,9 +20,10 @@ class EventAPITestCase(TestBase):
         self.buildDsym()
         self.do_listen_for_and_print_event()
 
-    @skipUnlessPlatform(getDarwinOSTriples() + ["freebsd"])
     @python_api_test
     @dwarf_test
+    @expectedFailureLinux("llvm.org/pr23730") # Flaky, fails ~1/10 cases
+    @skipIfLinux # skip to avoid crashes
     def test_listen_for_and_print_event_with_dwarf(self):
         """Exercise SBEvent API."""
         self.buildDwarf()
