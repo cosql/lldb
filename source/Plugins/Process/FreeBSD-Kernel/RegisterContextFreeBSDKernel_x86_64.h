@@ -44,12 +44,11 @@ namespace {
     } GPR;
 }
 
-class RegisterContextFreeBSDKernel_x86_64 :
-    public RegisterContextPOSIX_x86
+class RegisterContextFreeBSDKernel_x86_64 : public RegisterContextPOSIX_x86
 {
 public:
-    RegisterContextFreeBSDKernel_x86_64 (lldb_private::Thread &thread,
-                                     lldb_private::RegisterInfoInterface *register_info);
+    RegisterContextFreeBSDKernel_x86_64(lldb_private::Thread &thread,
+                                        lldb_private::RegisterInfoInterface *register_info);
 
     ~RegisterContextFreeBSDKernel_x86_64();
 
@@ -87,4 +86,4 @@ private:
     GPR * m_gpr;
 };
 
-#endif // #ifndef liblldb_RegisterContextFreeBSDKernel_x86_64_H_
+#endif // liblldb_RegisterContextFreeBSDKernel_x86_64_H_

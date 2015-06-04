@@ -6,15 +6,23 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
+
+#include "RegisterContextFreeBSDKernel_x86_64.h"
+
+// C Includes
 #include <sys/types.h>
 #include <machine/pcb.h>
 
+// C++ Includes
+
+// Other libraries and framework includes
 #include "lldb/Core/DataExtractor.h"
 #include "lldb/Core/RegisterValue.h"
 #include "lldb/Target/Thread.h"
+
+// Project includes
 #include "ProcessFreeBSDKernel.h"
 #include "RegisterContextPOSIX.h"
-#include "RegisterContextFreeBSDKernel_x86_64.h"
 #include "ThreadFreeBSDKernel.h"
 
 using namespace lldb;
@@ -22,10 +30,10 @@ using namespace lldb_private;
 
 RegisterContextFreeBSDKernel_x86_64::RegisterContextFreeBSDKernel_x86_64(Thread &thread,
                                                                          RegisterInfoInterface *register_info)
-    : RegisterContextPOSIX_x86 (thread, 0, register_info),
+    : RegisterContextPOSIX_x86(thread, 0, register_info),
       m_gpr(nullptr)
 {
-    ProcessSP process_sp (CalculateProcess());
+    ProcessSP process_sp(CalculateProcess());
     Error error;
     struct pcb pcb;
     if (process_sp)
@@ -39,15 +47,14 @@ RegisterContextFreeBSDKernel_x86_64::RegisterContextFreeBSDKernel_x86_64(Thread 
         {
             m_gpr  = new GPR;
             memset(m_gpr, 0, sizeof(GPR));
-            m_gpr->rbx = (uint64_t)pcb.pcb_rbx;
-            m_gpr->rbp = (uint64_t)pcb.pcb_rbp;
-            m_gpr->rsp = (uint64_t)pcb.pcb_rsp;
-            m_gpr->r12 = (uint64_t)pcb.pcb_r12;
-            m_gpr->r13 = (uint64_t)pcb.pcb_r13;
-            m_gpr->r14 = (uint64_t)pcb.pcb_r14;
-            m_gpr->r15 = (uint64_t)pcb.pcb_r15;
-            m_gpr->rip = (uint64_t)pcb.pcb_rip;
-
+            m_gpr->rbx = static_cast<uint64_t>(pcb.pcb_rbx);
+            m_gpr->rbp = static_cast<uint64_t>(pcb.pcb_rbp);
+            m_gpr->rsp = static_cast<uint64_t>(pcb.pcb_rsp);
+            m_gpr->r12 = static_cast<uint64_t>(pcb.pcb_r12);
+            m_gpr->r13 = static_cast<uint64_t>(pcb.pcb_r13);
+            m_gpr->r14 = static_cast<uint64_t>(pcb.pcb_r14);
+            m_gpr->r15 = static_cast<uint64_t>(pcb.pcb_r15);
+            m_gpr->rip = static_cast<uint64_t>(pcb.pcb_rip);
         }
     }
 }
@@ -88,10 +95,10 @@ RegisterContextFreeBSDKernel_x86_64::ReadRegister(const RegisterInfo *reg_info, 
 {
     if (m_gpr)
     {
-        value = *(uint64_t *)((char *)m_gpr + reg_info->byte_offset);
-
+        value = *(reinterpret_cast<uint64_t *>(reinterpret_cast<char *>(m_gpr) + reg_info->byte_offset));
         return true;
     }
+
     return false;
 }
 
