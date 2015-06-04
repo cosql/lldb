@@ -94,7 +94,7 @@ DynamicLoaderFreeBSDKernel::CreateInstance(Process *process, bool force)
     }
 
     if (create)
-        return new DynamicLoaderFreeBSDKernel (process);
+        return new DynamicLoaderFreeBSDKernel(process);
     return NULL;
 }
 
@@ -118,9 +118,7 @@ DynamicLoaderFreeBSDKernel::DidAttach()
 void
 DynamicLoaderFreeBSDKernel::DidLaunch()
 {
-    ModuleSP executable;
-
-    executable = GetTargetExecutable();
+    ModuleSP executable = GetTargetExecutable();
 
     if (executable.get())
     {
@@ -169,18 +167,21 @@ DynamicLoaderFreeBSDKernel::LoadAllCurrentModules()
         m_filename_offset == 0 || m_next_offset == 0)
         return;
 
-    for (addr_t kaddr = ReadPointer (m_linker_files_addr); kaddr != 0;
-         kaddr = ReadPointer (kaddr + m_next_offset)) {
-        if (kaddr == m_kernel_load_addr) {
+    for (addr_t kaddr = ReadPointer(m_linker_files_addr);
+         kaddr != 0;
+         kaddr = ReadPointer(kaddr + m_next_offset))
+    {
+        if (kaddr == m_kernel_load_addr)
             continue;
-        }
-        ReadMemory (ReadPointer(kaddr + m_filename_offset),
+
+        ReadMemory(ReadPointer(kaddr + m_filename_offset),
                     kld_filename, PATH_MAX, error);
 
         std::string path;
-        if (FindKLDPath(kld_filename, path)) {
-            addr_t kld_addr = ReadPointer (kaddr + m_address_offset);
-            FileSpec file_spec (path.c_str(), true);
+        if (FindKLDPath(kld_filename, path))
+        {
+            addr_t kld_addr = ReadPointer(kaddr + m_address_offset);
+            FileSpec file_spec(path.c_str(), true);
             ModuleSpec module_spec(file_spec, arch_spec);
             module_spec.SetObjectOffset(kld_addr);
             ModuleSP module_sp(new Module(module_spec));
@@ -217,7 +218,8 @@ DynamicLoaderFreeBSDKernel::InitLoadSpecs()
     ReadMemory(addr, buf, PATH_MAX, err);
     cp = buf;
 
-    while ((module_dir = strsep(&cp, ";")) != NULL) {
+    while ((module_dir = strsep(&cp, ";")) != NULL)
+    {
         m_module_paths.push_back(module_dir);
     }
 
@@ -235,10 +237,12 @@ DynamicLoaderFreeBSDKernel::InitLoadSpecs()
 }
 
 bool
-DynamicLoaderFreeBSDKernel::CheckKLDPath (std::string path)
+DynamicLoaderFreeBSDKernel::CheckKLDPath(std::string path)
 {
     for (std::vector<std::string>::iterator suffix = kld_suffixes.begin();
-         suffix != kld_suffixes.end(); suffix++) {
+         suffix != kld_suffixes.end();
+         suffix++)
+    {
         std::string kld_path = path + *suffix;
         if (IsKLDOK(kld_path))
             return true;
@@ -262,16 +266,20 @@ DynamicLoaderFreeBSDKernel::FindKLDPath (std::string filename, std::string& path
 {
     char *kernel_dir;
     ModuleSP executable = GetTargetExecutable();
-    if (executable) {
+    if (executable)
+    {
         kernel_dir = dirname(executable->GetSpecificationDescription().c_str());
-           if (kernel_dir != NULL) {
-               path = std::string(kernel_dir) + "/" + filename;
+        if (kernel_dir != NULL)
+        {
+            path = std::string(kernel_dir) + "/" + filename;
             if (CheckKLDPath(path))
                 return true;
         }
     }
     for (std::vector<std::string>::iterator it = m_module_paths.begin();
-         it != m_module_paths.end(); it++) {
+         it != m_module_paths.end();
+         it++)
+    {
         path = *it + "/" + filename;
         if (CheckKLDPath(path))
             return true;
@@ -280,8 +288,7 @@ DynamicLoaderFreeBSDKernel::FindKLDPath (std::string filename, std::string& path
 }
 
 bool
-DynamicLoaderFreeBSDKernel::FindKLDAddress(std::string kld_name,
-                                           addr_t& kld_addr)
+DynamicLoaderFreeBSDKernel::FindKLDAddress(std::string kld_name, addr_t& kld_addr)
 {
     char kld_filename[PATH_MAX];
     char *filename;
@@ -294,27 +301,24 @@ DynamicLoaderFreeBSDKernel::FindKLDAddress(std::string kld_name,
     filename = basename(kld_name.c_str());
 
     for (addr_t kaddr = ReadPointer (m_linker_files_addr); kaddr != 0;
-         kaddr = ReadPointer (kaddr + m_next_offset)) {
+         kaddr = ReadPointer (kaddr + m_next_offset))
+    {
+        ReadMemory(ReadPointer(kaddr + m_filename_offset), kld_filename, PATH_MAX, error);
 
-        ReadMemory (ReadPointer(kaddr + m_filename_offset),
-                    kld_filename, PATH_MAX, error);
-
-        if (strcmp (kld_filename, filename)) {
+        if (strcmp(kld_filename, filename))
             continue;
-        }
-        kld_addr = ReadPointer (kaddr + m_address_offset);
-        if (kld_addr == 0) {
+
+        kld_addr = ReadPointer(kaddr + m_address_offset);
+        if (kld_addr == 0)
             return false;
-        } else {
+        else
             return true;
-        }
     }
     return false;
 }
 
 lldb::addr_t
-DynamicLoaderFreeBSDKernel::LookUpSymbolAddressInModule(lldb::ModuleSP module,
-                                                        const char *name)
+DynamicLoaderFreeBSDKernel::LookUpSymbolAddressInModule(lldb::ModuleSP module, const char *name)
 {
     lldb_private::SymbolVendor *sym_vendor = module->GetSymbolVendor ();
     if (sym_vendor)
@@ -326,8 +330,7 @@ DynamicLoaderFreeBSDKernel::LookUpSymbolAddressInModule(lldb::ModuleSP module,
             ConstString symbol_name (name);
             uint32_t num_matches = 0;
 
-            num_matches = symtab->AppendSymbolIndexesWithName (symbol_name,
-                                                               match_indexes);
+            num_matches = symtab->AppendSymbolIndexesWithName(symbol_name, match_indexes);
 
             if (num_matches > 0)
             {
@@ -340,8 +343,8 @@ DynamicLoaderFreeBSDKernel::LookUpSymbolAddressInModule(lldb::ModuleSP module,
     return LLDB_INVALID_ADDRESS;
 }
 
-size_t DynamicLoaderFreeBSDKernel::ReadMemory(addr_t addr, void *buf,
-                                              size_t size, Error &error)
+size_t
+DynamicLoaderFreeBSDKernel::ReadMemory(addr_t addr, void *buf, size_t size, Error &error)
 {
     return m_process->ReadMemory(addr, buf, size, error);
 }

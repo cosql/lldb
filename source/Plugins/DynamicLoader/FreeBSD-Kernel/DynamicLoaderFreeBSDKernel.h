@@ -76,11 +76,14 @@ public:
     virtual lldb_private::Log *
     EnablePluginLogging(lldb_private::Stream *strm, lldb_private::Args &command);
 
-    void RefreshModules();
+    void
+    RefreshModules();
 
-    void LoadAllCurrentModules();
+    void
+    LoadAllCurrentModules();
 
-    size_t ReadMemory(lldb::addr_t addr, void *buf, size_t size, lldb_private::Error &error);
+    size_t
+    ReadMemory(lldb::addr_t addr, void *buf, size_t size, lldb_private::Error &error);
 protected:
     lldb::addr_t m_kernel_load_addr, m_linker_files_addr, m_kernel_file_addr;
     lldb::addr_t m_address_offset, m_filename_offset;
@@ -88,17 +91,21 @@ protected:
     std::vector<std::string> m_module_paths;
 private:
     bool
-    IsKLDOK (std::string path);
+    IsKLDOK(std::string path);
 
     bool
-    CheckKLDPath (std::string path);
+    CheckKLDPath(std::string path);
 
-    bool FindKLDPath (std::string filename, std::string& path);
+    bool
+    FindKLDPath(std::string filename, std::string& path);
 
-    bool FindKLDAddress(std::string kld_name, lldb::addr_t& kld_addr);
+    bool
+    FindKLDAddress(std::string kld_name, lldb::addr_t& kld_addr);
 
-    void InitLoadSpecs();
-    lldb::addr_t 
+    void
+    InitLoadSpecs();
+
+    lldb::addr_t
     LookUpSymbolAddressInModule(lldb::ModuleSP module, const char *name);
 
     DISALLOW_COPY_AND_ASSIGN(DynamicLoaderFreeBSDKernel);
