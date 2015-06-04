@@ -171,6 +171,7 @@ set( LLVM_LINK_COMPONENTS
   core
   mcdisassembler
   executionengine
+  runtimedyld
   option
   support
   )
