@@ -7,14 +7,16 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "DynamicLoaderFreeBSDKernel.h"
+
 // C Includes
 #include <libgen.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/stat.h>
+
 // C++ Includes
+
 // Other libraries and framework includes
+#include "lldb/Breakpoint/BreakpointLocation.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
@@ -26,15 +28,17 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Target/ThreadPlanRunToAddress.h"
-#include "lldb/Breakpoint/BreakpointLocation.h"
 
-#include "DynamicLoaderFreeBSDKernel.h"
+// System includes
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/stat.h>
 
 using namespace lldb;
 using namespace lldb_private;
 
 namespace {
-    std::vector<std::string> kld_suffixes = { ".debug", ".symbols", ""};
+    std::vector<std::string> kld_suffixes = {".debug", ".symbols", ""};
     // http://svnweb.freebsd.org/base/head/sys/sys/linker.h
 };
 
