@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef liblldb_ThreadFreeBSDKernel_h_
-#define liblldb_ThreadFreeBSDKernel_h_
+#ifndef liblldb_ThreadFreeBSDKernel_H_
+#define liblldb_ThreadFreeBSDKernel_H_
 
 #include <string>
 
@@ -17,54 +17,54 @@
 class ThreadFreeBSDKernel : public lldb_private::Thread
 {
 public:
-	ThreadFreeBSDKernel (lldb_private::Process &process, lldb::tid_t tid);
+    ThreadFreeBSDKernel(lldb_private::Process &process, lldb::tid_t tid);
 
     virtual
-	~ThreadFreeBSDKernel ();
+    ~ThreadFreeBSDKernel();
 
     virtual void
-	RefreshStateAfterStop();
+    RefreshStateAfterStop();
 
     virtual lldb::RegisterContextSP
-	GetRegisterContext ();
+    GetRegisterContext();
 
     virtual lldb::RegisterContextSP
-	CreateRegisterContextForFrame (lldb_private::StackFrame *frame);
+    CreateRegisterContextForFrame(lldb_private::StackFrame *frame);
 
     static bool
-	ThreadIDIsValid (lldb::tid_t thread)
+    ThreadIDIsValid(lldb::tid_t thread)
     {
-	    return thread != 0;
+        return thread != 0;
     }
 
     virtual const char *
-	GetName ()
+    GetName()
     {
-	    if (m_thread_name.empty())
-		    return NULL;
-	    return m_thread_name.c_str();
+        if (m_thread_name.empty())
+            return NULL;
+        return m_thread_name.c_str();
     }
 
     void
-	SetName (const char *name)
+    SetName(const char *name)
     {
-	    if (name && name[0])
-		    m_thread_name.assign (name);
-	    else
-		    m_thread_name.clear();
+        if (name && name[0])
+            m_thread_name.assign(name);
+        else
+            m_thread_name.clear();
     }
 
     const char *
-    GetQueueName ()
+    GetQueueName()
     {
         return NULL;
     }
 
     void
-    Dump (lldb_private::Log *log, uint32_t index);
+    Dump(lldb_private::Log *log, uint32_t index);
 
     bool
-    ShouldStop (bool &step_more);
+    ShouldStop(bool &step_more);
 
     lldb::addr_t GetPCB()
     {
@@ -91,4 +91,4 @@ protected:
 
 };
 
-#endif // liblldb_ThreadFreeBSDKernel_h_
+#endif // liblldb_ThreadFreeBSDKernel_H_

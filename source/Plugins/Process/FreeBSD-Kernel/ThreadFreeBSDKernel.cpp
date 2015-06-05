@@ -7,22 +7,17 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "ThreadFreeBSDKernel.h"
+
 #include "lldb/Core/ArchSpec.h"
-#include "lldb/Core/DataExtractor.h"
-#include "lldb/Core/StreamString.h"
-#include "lldb/Core/State.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/StopInfo.h"
 #include "lldb/Target/Target.h"
-#include "lldb/Target/Unwind.h"
-#include "lldb/Breakpoint/Watchpoint.h"
 
 #include "ProcessFreeBSDKernel.h"
-#include "ProcessPOSIXLog.h"
 #include "RegisterContextFreeBSD_x86_64.h"
 #include "RegisterContextFreeBSDKernel_x86_64.h"
-#include "ThreadFreeBSDKernel.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -31,14 +26,13 @@ using namespace lldb_private;
 // Thread Registers
 //----------------------------------------------------------------------
 
-ThreadFreeBSDKernel::ThreadFreeBSDKernel (Process &process,
-                                          tid_t tid)
+ThreadFreeBSDKernel::ThreadFreeBSDKernel(Process &process, tid_t tid)
     : Thread(process, tid),
       m_thread_name ()
 {
 }
 
-ThreadFreeBSDKernel::~ThreadFreeBSDKernel ()
+ThreadFreeBSDKernel::~ThreadFreeBSDKernel()
 {
     DestroyThread();
 }
@@ -55,9 +49,9 @@ ThreadFreeBSDKernel::RefreshStateAfterStop()
     // register supply functions where they check the process stop ID and do
     // the right thing.
     const bool force = false;
-    lldb::RegisterContextSP reg_ctx_sp (GetRegisterContext());
+    lldb::RegisterContextSP reg_ctx_sp(GetRegisterContext());
     if (reg_ctx_sp)
-        reg_ctx_sp->InvalidateIfNeeded (force);
+        reg_ctx_sp->InvalidateIfNeeded(force);
 }
 
 void
@@ -67,31 +61,30 @@ ThreadFreeBSDKernel::Dump(Log *log, uint32_t index)
 
 
 bool
-ThreadFreeBSDKernel::ShouldStop (bool &step_more)
+ThreadFreeBSDKernel::ShouldStop(bool &step_more)
 {
     return true;
 }
 
 lldb::RegisterContextSP
-ThreadFreeBSDKernel::GetRegisterContext ()
+ThreadFreeBSDKernel::GetRegisterContext()
 {
     if (!m_reg_context_sp)
-    {
-        m_reg_context_sp = CreateRegisterContextForFrame (NULL);
-    }
+        m_reg_context_sp = CreateRegisterContextForFrame(NULL);
+
     return m_reg_context_sp;
 }
 
 lldb::RegisterContextSP
-ThreadFreeBSDKernel::CreateRegisterContextForFrame (StackFrame *frame)
+ThreadFreeBSDKernel::CreateRegisterContextForFrame(StackFrame *frame)
 {
     lldb::RegisterContextSP reg_ctx_sp;
     RegisterInfoInterface *reg_interface = NULL;
     uint32_t concrete_frame_idx = 0;
 
-    if (frame) {
-        concrete_frame_idx = frame->GetConcreteFrameIndex ();
-    }
+    if (frame)
+        concrete_frame_idx = frame->GetConcreteFrameIndex();
+
     const ArchSpec &target_arch = GetProcess()->GetTarget().GetArchitecture();
 
     if (concrete_frame_idx == 0)
@@ -103,14 +96,12 @@ ThreadFreeBSDKernel::CreateRegisterContextForFrame (StackFrame *frame)
         {
             switch (process->GetTarget().GetArchitecture().GetMachine())
             {
-            case llvm::Triple::x86_64:
-                {
-                    reg_interface =  new RegisterContextFreeBSD_x86_64 (target_arch);
+                case llvm::Triple::x86_64:
+                    reg_interface =  new RegisterContextFreeBSD_x86_64(target_arch);
                     break;
-                }
-            default:
-                assert (!"Add CPU type support in FreeBSD Kernel");
-                break;
+                default:
+                    assert (!"Add CPU type support in FreeBSD Kernel");
+                    break;
             }
         }
     }
@@ -119,32 +110,28 @@ ThreadFreeBSDKernel::CreateRegisterContextForFrame (StackFrame *frame)
     {
         case llvm::Triple::x86:
         case llvm::Triple::x86_64:
-            {
-                RegisterContextFreeBSDKernel_x86_64 *reg_ctx =
-                    new RegisterContextFreeBSDKernel_x86_64(*this, reg_interface);
-                m_reg_context_sp.reset(reg_ctx);
-                break;
-            }
-        default:
+        {
+            RegisterContextFreeBSDKernel_x86_64 *reg_ctx =
+                new RegisterContextFreeBSDKernel_x86_64(*this, reg_interface);
+            m_reg_context_sp.reset(reg_ctx);
+            break;
+         }
+         default:
             break;
     }
     return m_reg_context_sp;
 }
 
 bool
-ThreadFreeBSDKernel::CalculateStopInfo ()
+ThreadFreeBSDKernel::CalculateStopInfo()
 {
-    ProcessSP process_sp (GetProcess());
+    ProcessSP process_sp(GetProcess());
     if (process_sp)
     {
         if (m_cached_stop_info_sp)
-        {
-            SetStopInfo (m_cached_stop_info_sp);
-        }
+            SetStopInfo(m_cached_stop_info_sp);
         else
-        {
-            SetStopInfo(StopInfo::CreateStopReasonWithSignal (*this, SIGSTOP));
-        }
+            SetStopInfo(StopInfo::CreateStopReasonWithSignal(*this, SIGSTOP));
         return true;
     }
     return false;
