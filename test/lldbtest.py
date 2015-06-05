@@ -47,6 +47,11 @@ import lldbtest_config
 import lldbutil
 from _pyio import __metaclass__
 
+if sys.version_info.major < 3:
+    import urlparse
+else:
+    import urllib.parse as urlparse
+
 # dosep.py starts lots and lots of dotest instances
 # This option helps you find if two (or more) dotest instances are using the same
 # directory at the same time
@@ -429,6 +434,31 @@ def builder_module():
         return __import__("builder_freebsd")
     return __import__("builder_" + sys.platform)
 
+def run_adb_command(cmd, device_id):
+    device_id_args = []
+    if device_id:
+        device_id_args = ["-s", device_id]
+    full_cmd = ["adb"] + device_id_args + cmd
+    p = Popen(full_cmd, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    return p.returncode, stdout, stderr
+
+def android_device_api():
+    assert lldb.platform_url is not None
+    device_id = None
+    parsed_url = urlparse.urlparse(lldb.platform_url)
+    if parsed_url.scheme == "adb":
+        device_id = parsed_url.netloc.split(":")[0]
+    retcode, stdout, stderr = run_adb_command(
+        ["shell", "getprop", "ro.build.version.sdk"], device_id)
+    if retcode == 0:
+        return int(stdout)
+    else:
+        raise LookupError(
+            ">>> Unable to determine the API level of the Android device.\n"
+            ">>> stdout:\n%s\n"
+            ">>> stderr:\n%s\n" % (stdout, stderr))
+
 #
 # Decorators for categorizing test cases.
 #
@@ -654,10 +684,23 @@ def expectedFailureLinux(bugnumber=None, compilers=None):
 def expectedFailureWindows(bugnumber=None, compilers=None):
     return expectedFailureOS(['windows'], bugnumber, compilers)
 
-def expectedFailureAndroid(bugnumber=None):
+def expectedFailureAndroid(bugnumber=None, api_levels=None):
+    """ Mark a test as xfail for Android.
+
+    Arguments:
+        bugnumber - The LLVM pr associated with the problem.
+        api_levels - A sequence of numbers specifying the Android API levels
+            for which a test is expected to fail.
+    """
     def fn(self):
         triple = self.dbg.GetSelectedPlatform().GetTriple()
-        return re.match(".*-.*-.*-android", triple)
+        match = re.match(".*-.*-.*-android", triple)
+        if match:
+            if not api_levels:
+                return True
+            device_api = android_device_api()
+            return device_api and (device_api in api_levels)
+
     return expectedFailure(fn, bugnumber)
 
 def expectedFailureLLGS(bugnumber=None, compilers=None):
@@ -887,20 +930,33 @@ def skipIfi386(func):
             func(*args, **kwargs)
     return wrapper
 
-def skipIfTargetAndroid(func):
-    """Decorate the item to skip tests that should be skipped when the target is Android."""
-    if isinstance(func, type) and issubclass(func, unittest2.TestCase):
-        raise Exception("@skipIfTargetAndroid can only be used to decorate a test method")
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        from unittest2 import case
-        self = args[0]
-        triple = self.dbg.GetSelectedPlatform().GetTriple()
-        if re.match(".*-.*-.*-android", triple):
-            self.skipTest("skip on Android target")
-        else:
+def skipIfTargetAndroid(api_levels=None):
+    """Decorator to skip tests when the target is Android.
+
+    Arguments:
+        api_levels - The API levels for which the test should be skipped. If
+            it is None, then the test will be skipped for all API levels.
+    """
+    def myImpl(func):
+        if isinstance(func, type) and issubclass(func, unittest2.TestCase):
+            raise Exception("@skipIfTargetAndroid can only be used to "
+                            "decorate a test method")
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            from unittest2 import case
+            self = args[0]
+            triple = self.dbg.GetSelectedPlatform().GetTriple()
+            if re.match(".*-.*-.*-android", triple):
+                if api_levels:
+                    device_api = android_device_api()
+                    if device_api and (device_api in api_levels):
+                        self.skipTest(
+                            "skip on Android target with API %d" % device_api)
+                else:
+                    self.skipTest("skip on Android target")
             func(*args, **kwargs)
-    return wrapper
+        return wrapper
+    return myImpl
 
 def skipUnlessCompilerRt(func):
     """Decorate the item to skip tests if testing remotely."""
