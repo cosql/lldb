@@ -244,6 +244,9 @@ public:
     Error
     GetFileLoadAddress(const FileSpec& file, bool& is_loaded, lldb::addr_t& load_addr) override;
 
+    void
+    ModulesDidLoad (ModuleList &module_list) override;
+
 protected:
     friend class ThreadGDBRemote;
     friend class GDBRemoteCommunicationClient;
@@ -359,6 +362,9 @@ protected:
     lldb::CommandObjectSP m_command_sp;
     int64_t m_breakpoint_pc_offset;
     lldb::tid_t m_initial_tid; // The inital thread ID, given by stub on attach
+
+    bool
+    HandleNotifyPacket(StringExtractorGDBRemote &packet);
 
     bool
     StartAsyncThread ();
