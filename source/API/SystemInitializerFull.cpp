@@ -57,10 +57,6 @@
 #include "Plugins/Process/FreeBSD-Kernel/ProcessFreeBSDKernel.h"
 #endif
 
-#if defined(__linux__)
-#include "Plugins/Process/Linux/ProcessLinux.h"
-#endif
-
 #if defined(_MSC_VER)
 #include "lldb/Host/windows/windows.h"
 #include "Plugins/Process/Windows/DynamicLoaderWindows.h"
@@ -267,12 +263,6 @@ SystemInitializerFull::Initialize()
     SystemRuntimeMacOSX::Initialize();
     RenderScriptRuntime::Initialize();
 
-#if defined(__linux__)
-    //----------------------------------------------------------------------
-    // Linux hosted plugins
-    //----------------------------------------------------------------------
-    process_linux::ProcessLinux::Initialize();
-#endif
 #if defined(_MSC_VER)
     DynamicLoaderWindows::Initialize();
     ProcessWindows::Initialize();
@@ -382,10 +372,6 @@ SystemInitializerFull::Terminate()
 #endif
 #if defined(_MSC_VER)
     DynamicLoaderWindows::Terminate();
-#endif
-
-#if defined(__linux__)
-    process_linux::ProcessLinux::Terminate();
 #endif
 
 #if defined(__FreeBSD__)
