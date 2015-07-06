@@ -2702,12 +2702,25 @@ NativeProcessLinux::GetMemoryRegionInfo (lldb::addr_t load_addr, MemoryRegionInf
         // The target memory address comes somewhere after the region we just parsed.
     }
 
-    // If we made it here, we didn't find an entry that contained the given address.
-    error.SetErrorString ("address comes after final region");
-
-    if (log)
-        log->Printf ("NativeProcessLinux::%s failed to find map entry for address 0x%" PRIx64 ": %s", __FUNCTION__, load_addr, error.AsCString ());
-
+    // If we made it here, we didn't find an entry that contained the given address. Return the
+    // load_addr as start and the amount of bytes betwwen load address and the end of the memory as
+    // size.
+    range_info.GetRange ().SetRangeBase (load_addr);
+    switch (m_arch.GetAddressByteSize())
+    {
+        case 4:
+            range_info.GetRange ().SetByteSize (0x100000000ull - load_addr);
+            break;
+        case 8:
+            range_info.GetRange ().SetByteSize (0ull - load_addr);
+            break;
+        default:
+            assert(false && "Unrecognized data byte size");
+            break;
+    }
+    range_info.SetReadable (MemoryRegionInfo::OptionalBool::eNo);
+    range_info.SetWritable (MemoryRegionInfo::OptionalBool::eNo);
+    range_info.SetExecutable (MemoryRegionInfo::OptionalBool::eNo);
     return error;
 }
 
@@ -2838,28 +2851,22 @@ NativeProcessLinux::GetSoftwareBreakpointPCOffset (NativeRegisterContextSP conte
 {
     // FIXME put this behind a breakpoint protocol class that can be
     // set per architecture.  Need ARM, MIPS support here.
-    static const uint8_t g_aarch64_opcode[] = { 0x00, 0x00, 0x20, 0xd4 };
     static const uint8_t g_i386_opcode [] = { 0xCC };
 
     switch (m_arch.GetMachine ())
     {
-        case llvm::Triple::aarch64:
-            actual_opcode_size = static_cast<uint32_t> (sizeof(g_aarch64_opcode));
-            return Error ();
-
-        case llvm::Triple::arm:
-            actual_opcode_size = 0; // On arm the PC don't get updated for breakpoint hits
-            return Error ();
-
         case llvm::Triple::x86:
         case llvm::Triple::x86_64:
             actual_opcode_size = static_cast<uint32_t> (sizeof(g_i386_opcode));
             return Error ();
 
+        case llvm::Triple::arm:
+        case llvm::Triple::aarch64:
         case llvm::Triple::mips64:
         case llvm::Triple::mips64el:
         case llvm::Triple::mips:
         case llvm::Triple::mipsel:
+            // On these architectures the PC don't get updated for breakpoint hits
             actual_opcode_size = 0;
             return Error ();
         
