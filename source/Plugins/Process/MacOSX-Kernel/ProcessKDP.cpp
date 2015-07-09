@@ -37,6 +37,7 @@
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
+#include "lldb/Utility/StringExtractor.h"
 
 #define USEC_PER_SEC 1000000
 
@@ -46,7 +47,6 @@
 #include "ThreadKDP.h"
 #include "Plugins/DynamicLoader/Darwin-Kernel/DynamicLoaderDarwinKernel.h"
 #include "Plugins/DynamicLoader/Static/DynamicLoaderStatic.h"
-#include "Utility/StringExtractor.h"
 
 using namespace lldb;
 using namespace lldb_private;
