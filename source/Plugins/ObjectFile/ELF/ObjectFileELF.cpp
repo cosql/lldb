@@ -1437,6 +1437,25 @@ ObjectFileELF::GetSectionHeaderInfo(SectionHeaderColl &section_headers,
         assert(spec_ostype == ostype);
     }
 
+    if (arch_spec.GetMachine() == llvm::Triple::mips || arch_spec.GetMachine() == llvm::Triple::mipsel
+        || arch_spec.GetMachine() == llvm::Triple::mips64 || arch_spec.GetMachine() == llvm::Triple::mips64el)
+    {
+        switch (header.e_flags & llvm::ELF::EF_MIPS_ARCH_ASE)
+        {
+            case llvm::ELF::EF_MIPS_MICROMIPS:  
+                arch_spec.SetFlags (ArchSpec::eMIPSAse_micromips); 
+                break;
+            case llvm::ELF::EF_MIPS_ARCH_ASE_M16: 
+                arch_spec.SetFlags (ArchSpec::eMIPSAse_mips16); 
+                break;
+            case llvm::ELF::EF_MIPS_ARCH_ASE_MDMX: 
+                arch_spec.SetFlags (ArchSpec::eMIPSAse_mdmx); 
+                break;
+            default: 
+                break;
+        }
+    }
+
     // If there are no section headers we are done.
     if (header.e_shnum == 0)
         return 0;
@@ -1482,6 +1501,22 @@ ObjectFileELF::GetSectionHeaderInfo(SectionHeaderColl &section_headers,
                 ConstString name(shstr_data.PeekCStr(I->sh_name));
 
                 I->section_name = name;
+
+                if (arch_spec.GetMachine() == llvm::Triple::mips || arch_spec.GetMachine() == llvm::Triple::mipsel
+                    || arch_spec.GetMachine() == llvm::Triple::mips64 || arch_spec.GetMachine() == llvm::Triple::mips64el)
+                {
+                    if (header.sh_type == SHT_MIPS_ABIFLAGS)
+                    {
+                        DataExtractor data;
+                        if (section_size && (data.SetData (object_data, header.sh_offset, section_size) == section_size))
+                        {
+                            lldb::offset_t ase_offset = 12; // MIPS ABI Flags Version: 0
+                            uint32_t arch_flags = arch_spec.GetFlags ();
+                            arch_flags |= data.GetU32 (&ase_offset);
+                            arch_spec.SetFlags (arch_flags);
+                        }
+                    }
+                }
 
                 if (name == g_sect_name_gnu_debuglink)
                 {
@@ -1696,7 +1731,7 @@ ObjectFileELF::CreateSections(SectionList &unified_section_list)
             if (eSectionTypeOther == sect_type)
             {
                 // the kalimba toolchain assumes that ELF section names are free-form. It does
-                // supports linkscripts which (can) give rise to various arbitarily named
+                // support linkscripts which (can) give rise to various arbitrarily named
                 // sections being "Code" or "Data". 
                 sect_type = kalimbaSectionType(m_header, header);
             }
@@ -2034,7 +2069,7 @@ ObjectFileELF::ParseSymbols (Symtab *symtab,
         Mangled mangled(ConstString(symbol_bare), is_mangled);
 
         // Now append the suffix back to mangled and unmangled names. Only do it if the
-        // demangling was sucessful (string is not empty).
+        // demangling was successful (string is not empty).
         if (has_suffix)
         {
             llvm::StringRef suffix = symbol_ref.substr(version_pos);
@@ -2186,7 +2221,7 @@ ObjectFileELF::PLTRelocationType()
 }
 
 // Returns the size of the normal plt entries and the offset of the first normal plt entry. The
-// 0th entry in the plt table is ususally a resolution entry which have different size in some
+// 0th entry in the plt table is usually a resolution entry which have different size in some
 // architectures then the rest of the plt entries.
 static std::pair<uint64_t, uint64_t>
 GetPltEntrySizeAndOffset(const ELFSectionHeader* rel_hdr, const ELFSectionHeader* plt_hdr)
@@ -2202,8 +2237,8 @@ GetPltEntrySizeAndOffset(const ELFSectionHeader* rel_hdr, const ELFSectionHeader
     {
         // The linker haven't set the plt_hdr->sh_entsize field. Try to guess the size of the plt
         // entries based on the number of entries and the size of the plt section with the
-        // asumption that the size of the 0th entry is at least as big as the size of the normal
-        // entries and it isn't mutch bigger then that.
+        // assumption that the size of the 0th entry is at least as big as the size of the normal
+        // entries and it isn't much bigger then that.
         if (plt_hdr->sh_addralign)
             plt_entsize = plt_hdr->sh_size / plt_hdr->sh_addralign / (num_relocations + 1) * plt_hdr->sh_addralign;
         else

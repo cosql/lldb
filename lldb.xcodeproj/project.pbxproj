@@ -808,6 +808,7 @@
 		AF0F6E501739A76D009180FE /* RegisterContextKDP_arm64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF0F6E4E1739A76D009180FE /* RegisterContextKDP_arm64.cpp */; };
 		AF1729D6182C907200E0AB97 /* HistoryThread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF1729D4182C907200E0AB97 /* HistoryThread.cpp */; };
 		AF1729D7182C907200E0AB97 /* HistoryUnwind.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF1729D5182C907200E0AB97 /* HistoryUnwind.cpp */; };
+		AF1D88691B575E8D003CB899 /* ValueObjectConstResultCast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF94726E1B575E430063D65C /* ValueObjectConstResultCast.cpp */; };
 		AF1F7B07189C904B0087DB9C /* AppleGetPendingItemsHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF1F7B05189C904B0087DB9C /* AppleGetPendingItemsHandler.cpp */; };
 		AF1FA88A1A60A69500272AFC /* RegisterNumber.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF1FA8891A60A69500272AFC /* RegisterNumber.cpp */; };
 		AF20F7661AF18F8500751A6E /* ABISysV_arm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF20F7641AF18F8500751A6E /* ABISysV_arm.cpp */; };
@@ -861,6 +862,7 @@
 		E7723D4C1AC4A944002BA082 /* RegisterContextPOSIX_arm64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E7723D4A1AC4A944002BA082 /* RegisterContextPOSIX_arm64.cpp */; };
 		E778E9A21B062D1700247609 /* EmulateInstructionMIPS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E778E99F1B062D1700247609 /* EmulateInstructionMIPS.cpp */; };
 		E7E94ABC1B54961F00D0AE30 /* GDBRemoteSignals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E73A15A41B548EC500786197 /* GDBRemoteSignals.cpp */; };
+		EB8375E71B553DE800BA907D /* ThreadPlanCallFunctionUsingABI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EB8375E61B553DE800BA907D /* ThreadPlanCallFunctionUsingABI.cpp */; };
 		ED88244E15114A9200BC98B9 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDB919B414F6F10D008FF64B /* Security.framework */; };
 		ED88245015114CA200BC98B9 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = ED88244F15114CA200BC98B9 /* main.mm */; };
 		ED88245115114CA200BC98B9 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = ED88244F15114CA200BC98B9 /* main.mm */; };
@@ -2429,6 +2431,7 @@
 		9475C18D14E5F834001BFC6D /* SBTypeNameSpecifier.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SBTypeNameSpecifier.cpp; path = source/API/SBTypeNameSpecifier.cpp; sourceTree = "<group>"; };
 		947A1D621616476A0017C8D1 /* CommandObjectPlugin.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommandObjectPlugin.cpp; path = source/Commands/CommandObjectPlugin.cpp; sourceTree = "<group>"; };
 		947A1D631616476A0017C8D1 /* CommandObjectPlugin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CommandObjectPlugin.h; path = source/Commands/CommandObjectPlugin.h; sourceTree = "<group>"; };
+		9481FE6B1B5F2D9200DED357 /* Either.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Either.h; path = include/lldb/Utility/Either.h; sourceTree = "<group>"; };
 		9492E2A41A8AC11000295BBD /* CoreMedia.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CoreMedia.cpp; path = source/DataFormatters/CoreMedia.cpp; sourceTree = "<group>"; };
 		949ADF001406F62E004833E1 /* ValueObjectConstResultImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ValueObjectConstResultImpl.h; path = include/lldb/Core/ValueObjectConstResultImpl.h; sourceTree = "<group>"; };
 		949ADF021406F648004833E1 /* ValueObjectConstResultImpl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ValueObjectConstResultImpl.cpp; path = source/Core/ValueObjectConstResultImpl.cpp; sourceTree = "<group>"; };
@@ -2641,6 +2644,8 @@
 		AF9107EC168570D200DBCD3C /* RegisterContextDarwin_arm64.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = RegisterContextDarwin_arm64.cpp; path = Utility/RegisterContextDarwin_arm64.cpp; sourceTree = "<group>"; };
 		AF9107ED168570D200DBCD3C /* RegisterContextDarwin_arm64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RegisterContextDarwin_arm64.h; path = Utility/RegisterContextDarwin_arm64.h; sourceTree = "<group>"; };
 		AF94005711C03F6500085DB9 /* SymbolVendor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SymbolVendor.cpp; path = source/Symbol/SymbolVendor.cpp; sourceTree = "<group>"; };
+		AF94726E1B575E430063D65C /* ValueObjectConstResultCast.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ValueObjectConstResultCast.cpp; path = source/Core/ValueObjectConstResultCast.cpp; sourceTree = "<group>"; };
+		AF9472701B575E5F0063D65C /* ValueObjectConstResultCast.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ValueObjectConstResultCast.h; path = include/lldb/Core/ValueObjectConstResultCast.h; sourceTree = "<group>"; };
 		AF9B8F31182DB52900DA866F /* SystemRuntimeMacOSX.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SystemRuntimeMacOSX.cpp; sourceTree = "<group>"; };
 		AF9B8F32182DB52900DA866F /* SystemRuntimeMacOSX.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SystemRuntimeMacOSX.h; sourceTree = "<group>"; };
 		AFB3D27E1AC262AB003B4B30 /* MICmdCmdGdbShow.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MICmdCmdGdbShow.cpp; path = "tools/lldb-mi/MICmdCmdGdbShow.cpp"; sourceTree = SOURCE_ROOT; };
@@ -2689,6 +2694,8 @@
 		E7723D4B1AC4A944002BA082 /* RegisterContextPOSIX_arm64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RegisterContextPOSIX_arm64.h; path = Utility/RegisterContextPOSIX_arm64.h; sourceTree = "<group>"; };
 		E778E99F1B062D1700247609 /* EmulateInstructionMIPS.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EmulateInstructionMIPS.cpp; sourceTree = "<group>"; };
 		E778E9A01B062D1700247609 /* EmulateInstructionMIPS.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EmulateInstructionMIPS.h; sourceTree = "<group>"; };
+		EB8375E61B553DE800BA907D /* ThreadPlanCallFunctionUsingABI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ThreadPlanCallFunctionUsingABI.cpp; path = source/Target/ThreadPlanCallFunctionUsingABI.cpp; sourceTree = "<group>"; };
+		EB8375E81B553DFE00BA907D /* ThreadPlanCallFunctionUsingABI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ThreadPlanCallFunctionUsingABI.h; path = include/lldb/Target/ThreadPlanCallFunctionUsingABI.h; sourceTree = "<group>"; };
 		ED88244F15114CA200BC98B9 /* main.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
 		ED88245215114CFC00BC98B9 /* LauncherRootXPCService.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = LauncherRootXPCService.mm; sourceTree = "<group>"; };
 		EDB919B214F6EC85008FF64B /* LauncherXPCService.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LauncherXPCService.h; sourceTree = "<group>"; };
@@ -3526,6 +3533,7 @@
 				264723A511FA076E00DE380C /* CleanUp.h */,
 				3F81691B1ABA242B001DA9DF /* ConvertEnum.h */,
 				3F8169171ABA2419001DA9DF /* ConvertEnum.cpp */,
+				9481FE6B1B5F2D9200DED357 /* Either.h */,
 				4C73152119B7D71700F865A4 /* Iterable.h */,
 				942829541A89614000521B30 /* JSON.h */,
 				942829551A89614C00521B30 /* JSON.cpp */,
@@ -4098,6 +4106,8 @@
 				26BC7E9B10F1B85900F91463 /* ValueObjectChild.cpp */,
 				26424E3E125986D30016D82C /* ValueObjectConstResult.h */,
 				26424E3C125986CB0016D82C /* ValueObjectConstResult.cpp */,
+				AF9472701B575E5F0063D65C /* ValueObjectConstResultCast.h */,
+				AF94726E1B575E430063D65C /* ValueObjectConstResultCast.cpp */,
 				94FA3DDD1405D4E500833217 /* ValueObjectConstResultChild.h */,
 				94FA3DDF1405D50300833217 /* ValueObjectConstResultChild.cpp */,
 				949ADF001406F62E004833E1 /* ValueObjectConstResultImpl.h */,
@@ -4600,6 +4610,8 @@
 				260C847110F50EFC00BB2B04 /* ThreadPlanBase.cpp */,
 				49EC3E9C118F90D400B1265E /* ThreadPlanCallFunction.h */,
 				49EC3E98118F90AC00B1265E /* ThreadPlanCallFunction.cpp */,
+				EB8375E81B553DFE00BA907D /* ThreadPlanCallFunctionUsingABI.h */,
+				EB8375E61B553DE800BA907D /* ThreadPlanCallFunctionUsingABI.cpp */,
 				4C7CF7E31295E10E00B4FBB5 /* ThreadPlanCallUserExpression.h */,
 				4C7CF7E51295E12B00B4FBB5 /* ThreadPlanCallUserExpression.cpp */,
 				4C56543219D1EFB5002E9C44 /* ThreadPlanPython.h */,
@@ -6315,6 +6327,7 @@
 				26744EF11338317700EF765A /* GDBRemoteCommunicationClient.cpp in Sources */,
 				26744EF31338317700EF765A /* GDBRemoteCommunicationServer.cpp in Sources */,
 				264A97BF133918BC0017F0BE /* PlatformRemoteGDBServer.cpp in Sources */,
+				EB8375E71B553DE800BA907D /* ThreadPlanCallFunctionUsingABI.cpp in Sources */,
 				2697A54D133A6305004E4240 /* PlatformDarwin.cpp in Sources */,
 				26651A18133BF9E0005B64B7 /* Opcode.cpp in Sources */,
 				3FDFED0B19B7C8DE009756A7 /* HostThreadMacOSX.mm in Sources */,
@@ -6335,6 +6348,7 @@
 				AFDFDFD119E34D3400EAE509 /* ConnectionFileDescriptorPosix.cpp in Sources */,
 				9A22A163135E30370024DDC3 /* EmulationStateARM.cpp in Sources */,
 				9A4F35101368A51A00823F52 /* StreamAsynchronousIO.cpp in Sources */,
+				AF1D88691B575E8D003CB899 /* ValueObjectConstResultCast.cpp in Sources */,
 				2692BA15136610C100F9E14D /* UnwindAssemblyInstEmulation.cpp in Sources */,
 				263E949F13661AEA00E7D1CE /* UnwindAssembly-x86.cpp in Sources */,
 				E7723D481AC4A8C8002BA082 /* RegisterContextFreeBSD_arm64.cpp in Sources */,

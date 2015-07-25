@@ -1263,6 +1263,26 @@ public:
     UnloadImage (uint32_t image_token);
 
     //------------------------------------------------------------------
+    /// Called when the process is about to broadcast a public stop.
+    ///
+    /// There are public and private stops. Private stops are when the
+    /// process is doing things like stepping and the client doesn't
+    /// need to know about starts and stop that implement a thread plan.
+    /// Single stepping over a source line in code might end up being
+    /// implemented by one or more process starts and stops. Public stops
+    /// are when clients will be notified that the process is stopped.
+    /// These events typically trigger UI updates (thread stack frames to
+    /// be displayed, variables to be displayed, and more). This function
+    /// can be overriden and allows process subclasses to do something
+    /// before the eBroadcastBitStateChanged event is sent to public
+    /// clients.
+    //------------------------------------------------------------------
+    virtual void
+    WillPublicStop ()
+    {
+    }
+
+    //------------------------------------------------------------------
     /// Register for process and thread notifications.
     ///
     /// Clients can register notification callbacks by filling out a
@@ -2369,7 +2389,7 @@ public:
     ///     that a block that isn't set writable can still be written on from lldb,
     ///     just not by the process itself.
     ///
-    /// @param[in/out] error
+    /// @param[in,out] error
     ///     An error object to fill in if things go wrong.
     /// @return
     ///     The address of the allocated buffer in the process, or
@@ -2471,7 +2491,40 @@ public:
     ///     True if execution of JIT code is possible; false otherwise.
     //------------------------------------------------------------------
     void SetCanJIT (bool can_jit);
+
+    //------------------------------------------------------------------
+    /// Determines whether executing function calls using the interpreter
+    /// is possible for this process.
+    ///
+    /// @return
+    ///     True if possible; false otherwise.
+    //------------------------------------------------------------------
+    bool CanInterpretFunctionCalls ()
+    {
+        return m_can_interpret_function_calls;
+    }
     
+    //------------------------------------------------------------------
+    /// Sets whether executing function calls using the interpreter
+    /// is possible for this process.
+    ///
+    /// @param[in] can_interpret_function_calls
+    ///     True if possible; false otherwise.
+    //------------------------------------------------------------------
+    void SetCanInterpretFunctionCalls (bool can_interpret_function_calls)
+    {
+        m_can_interpret_function_calls = can_interpret_function_calls;
+    }
+
+    //------------------------------------------------------------------
+    /// Sets whether executing code in this process is possible.
+    /// This could be either through JIT or interpreting.
+    ///
+    /// @param[in] can_run_code
+    ///     True if execution of code is possible; false otherwise.
+    //------------------------------------------------------------------
+    void SetCanRunCode (bool can_run_code);
+
     //------------------------------------------------------------------
     /// Actually deallocate memory in the process.
     ///
@@ -2818,7 +2871,7 @@ public:
     /// @param[in] stream
     ///     The output stream to get the state change description
     ///
-    /// @param[inout] pop_process_io_handler
+    /// @param[in,out] pop_process_io_handler
     ///     If this value comes in set to \b true, then pop the Process IOHandler if needed.
     ///     Else this variable will be set to \b true or \b false to indicate if the process
     ///     needs to have its process IOHandler popped.
@@ -3268,6 +3321,7 @@ protected:
     lldb::StateType             m_last_broadcast_state;   /// This helps with the Public event coalescing in ShouldBroadcastEvent.
     std::map<lldb::addr_t,lldb::addr_t> m_resolved_indirect_addresses;
     bool m_destroy_in_process;
+    bool m_can_interpret_function_calls; // Some targets, e.g the OSX kernel, don't support the ability to modify the stack.
     
     enum {
         eCanJITDontKnow= 0,

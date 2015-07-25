@@ -782,7 +782,7 @@ GDBRemoteCommunicationClient::SendPacketAndWaitForResponse
     Log *log (ProcessGDBRemoteLog::GetLogIfAllCategoriesSet (GDBR_LOG_PROCESS));
 
     // In order to stop async notifications from being processed in the middle of the
-    // send/recieve sequence Hijack the broadcast. Then rebroadcast any events when we are done.
+    // send/receive sequence Hijack the broadcast. Then rebroadcast any events when we are done.
     static Listener hijack_listener("lldb.NotifyHijacker");
     HijackBroadcaster(&hijack_listener, eBroadcastBitGdbReadThreadGotNotify);    
 
@@ -878,10 +878,10 @@ GDBRemoteCommunicationClient::SendPacketAndWaitForResponse
         }
     }
 
-    // Remove our Hijacking listner from the broadcast.
+    // Remove our Hijacking listener from the broadcast.
     RestoreBroadcaster();
 
-    // If a notification event occured, rebroadcast since it can now be processed safely.  
+    // If a notification event occurred, rebroadcast since it can now be processed safely.
     EventSP event_sp;
     if (hijack_listener.GetNextEvent(event_sp))
         BroadcastEvent(event_sp);
@@ -2293,7 +2293,8 @@ GDBRemoteCommunicationClient::Detach (bool keep_stopped)
             const int packet_len = ::snprintf(packet, sizeof(packet), "qSupportsDetachAndStayStopped:");
             assert (packet_len < (int)sizeof(packet));
             StringExtractorGDBRemote response;
-            if (SendPacketAndWaitForResponse (packet, packet_len, response, false) == PacketResult::Success)
+            if (SendPacketAndWaitForResponse (packet, packet_len, response, false) == PacketResult::Success
+                  && response.IsOKResponse())
             {
                 m_supports_detach_stay_stopped = eLazyBoolYes;        
             }
@@ -2311,7 +2312,7 @@ GDBRemoteCommunicationClient::Detach (bool keep_stopped)
         else
         {
             StringExtractorGDBRemote response;
-            PacketResult packet_result = SendPacketAndWaitForResponse ("D1", 1, response, false);
+            PacketResult packet_result = SendPacketAndWaitForResponse ("D1", 2, response, false);
             if (packet_result != PacketResult::Success)
                 error.SetErrorString ("Sending extended disconnect packet failed.");
         }

@@ -754,6 +754,7 @@ Process::Process(Target &target, Listener &listener, const UnixSignalsSP &unix_s
     m_force_next_event_delivery (false),
     m_last_broadcast_state (eStateInvalid),
     m_destroy_in_process (false),
+    m_can_interpret_function_calls(false),
     m_can_jit(eCanJITDontKnow)
 {
     CheckInWithManager ();
@@ -2842,6 +2843,7 @@ Process::WriteMemory (addr_t addr, const void *buf, size_t size, Error &error)
                     size_t intersect_size;
                     size_t opcode_offset;
                     const bool intersects = bp->IntersectsRange(addr, size, &intersect_addr, &intersect_size, &opcode_offset);
+                    UNUSED_IF_ASSERT_DISABLED(intersects);
                     assert(intersects);
                     assert(addr <= intersect_addr && intersect_addr < addr + size);
                     assert(addr < intersect_addr + intersect_size && intersect_addr + intersect_size <= addr + size);
@@ -3011,6 +3013,13 @@ Process::SetCanJIT (bool can_jit)
     m_can_jit = (can_jit ? eCanJITYes : eCanJITNo);
 }
 
+void
+Process::SetCanRunCode (bool can_run_code)
+{
+    SetCanJIT(can_run_code);
+    m_can_interpret_function_calls = can_run_code;
+}
+
 Error
 Process::DeallocateMemory (addr_t ptr)
 {
@@ -3040,6 +3049,11 @@ Process::ReadModuleFromMemory (const FileSpec& file_spec,
                                lldb::addr_t header_addr,
                                size_t size_to_read)
 {
+    Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
+    if (log)
+    {
+        log->Printf ("Process::ReadModuleFromMemory reading %s binary from memory", file_spec.GetPath().c_str());
+    }
     ModuleSP module_sp (new Module (file_spec, ArchSpec()));
     if (module_sp)
     {
@@ -4726,7 +4740,12 @@ Process::ProcessEventData::DoOnRemoval (Event *event_ptr)
     
     // If we're stopped and haven't restarted, then do the StopInfo actions here:
     if (m_state == eStateStopped && ! m_restarted)
-    {        
+    {
+        // Let process subclasses know we are about to do a public stop and
+        // do anything they might need to in order to speed up register and
+        // memory accesses.
+        process_sp->WillPublicStop();
+
         ThreadList &curr_thread_list = process_sp->GetThreadList();
         uint32_t num_threads = curr_thread_list.GetSize();
         uint32_t idx;
